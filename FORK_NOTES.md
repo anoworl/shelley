@@ -8,6 +8,7 @@
 ## Summary of changes
 
 - Add fork documentation (files: `README.md`, `FORK_NOTES.md`)
+- Add Claude GitHub Actions for PR assistant and code review (files: `.github/workflows/claude.yml`, `.github/workflows/claude-code-review.yml`)
 
 ## Compatibility / behavior changes
 
