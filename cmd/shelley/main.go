@@ -125,7 +125,8 @@ func runServe(global GlobalConfig, args []string) {
 	}
 
 	// Create server
-	svr := server.NewServer(database, llmManager, toolSetConfig, logger, global.PredictableOnly, llmConfig.TerminalURL, llmConfig.DefaultModel, *requireHeader, llmConfig.Links, assetHash)
+	svr := server.NewServer(database, llmManager, toolSetConfig, logger, global.PredictableOnly, llmConfig.TerminalURL, llmConfig.DefaultModel, *requireHeader, llmConfig.Links)
+	svr.SetAssetHash(assetHash)
 
 	var err error
 	if *systemdActivation {

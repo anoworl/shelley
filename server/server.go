@@ -248,7 +248,7 @@ type Server struct {
 }
 
 // NewServer creates a new server instance
-func NewServer(database *db.DB, llmManager LLMProvider, toolSetConfig claudetool.ToolSetConfig, logger *slog.Logger, predictableOnly bool, terminalURL, defaultModel, requireHeader string, links []Link, assetHash string) *Server {
+func NewServer(database *db.DB, llmManager LLMProvider, toolSetConfig claudetool.ToolSetConfig, logger *slog.Logger, predictableOnly bool, terminalURL, defaultModel, requireHeader string, links []Link) *Server {
 	return &Server{
 		db:                  database,
 		llmManager:          llmManager,
@@ -260,8 +260,12 @@ func NewServer(database *db.DB, llmManager LLMProvider, toolSetConfig claudetool
 		defaultModel:        defaultModel,
 		requireHeader:       requireHeader,
 		links:               links,
-		assetHash:           assetHash,
 	}
+}
+
+// SetAssetHash sets the asset hash for UI reload detection after deployment
+func (s *Server) SetAssetHash(hash string) {
+	s.assetHash = hash
 }
 
 // RegisterRoutes registers HTTP routes on the given mux
