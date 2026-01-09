@@ -45,7 +45,7 @@ changelog:
 
 release:
   github:
-    owner: boldsoftware
+    owner: anoworl
     name: shelley
   draft: false
   prerelease: auto
@@ -55,11 +55,11 @@ homebrew_casks:
     binaries:
       - shelley
     repository:
-      owner: boldsoftware
+      owner: anoworl
       name: homebrew-tap
       token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
     directory: Casks
-    homepage: https://github.com/boldsoftware/shelley
+    homepage: https://github.com/anoworl/shelley
     description: "A mobile-friendly, web-based, multi-modal coding agent"
     hooks:
       post:
