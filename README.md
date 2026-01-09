@@ -1,5 +1,10 @@
 # Shelley: a coding agent for exe.dev
 
+This repository is a fork of [boldsoftware/shelley](https://github.com/boldsoftware/shelley) (base: `6bfc75b`).
+Fork goal: Customizations for exe.dev VM deployment. See `FORK_NOTES.md` for details.
+
+---
+
 Shelley is a mobile-friendly, web-based, multi-conversation, multi-modal,
 multi-model, single-user coding agent built for but not exclusive to
 [exe.dev](https://exe.dev/). It does not come with authorization or sandboxing:
