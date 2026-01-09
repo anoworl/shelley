@@ -58,6 +58,8 @@ body {
   --gray-700: #374151;
   --gray-800: #1f2937;
   --gray-900: #111827;
+  --vscode-blue: #007ACC;
+  --vscode-blue-hover: #005a9e;
 }
 
 .dark {
@@ -360,6 +362,27 @@ button {
   background: var(--red-600);
   color: white;
   opacity: 1;
+}
+
+.btn-vscode {
+  width: 2rem;
+  height: 2rem;
+  background: var(--vscode-blue);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s;
+}
+
+.btn-vscode:hover {
+  background: var(--vscode-blue-hover);
+}
+
+.btn-vscode svg {
+  width: 0.875rem;
+  height: 0.875rem;
 }
 
 .btn-new {
@@ -1223,44 +1246,83 @@ button {
   background: var(--bg-base);
   border: 1px solid var(--border);
   border-radius: 0.25rem;
-  padding: 0.75rem;
   margin: 0;
   overflow-x: auto;
   line-height: 1.4;
+  display: grid;
+  grid-template-columns: auto 1fr;
 }
 
 .patch-diff-line {
-  white-space: pre;
-  display: block;
+  display: contents;
 }
 
-.patch-diff-addition {
+.patch-diff-line-number {
+  padding: 0 0.5rem;
+  text-align: right;
+  color: var(--text-tertiary);
+  user-select: none;
+  border-right: 1px solid var(--border);
+  background: var(--bg-secondary);
+}
+
+.patch-diff-line-number a {
+  color: var(--text-tertiary);
+  text-decoration: none;
+}
+
+.patch-diff-line-number a:hover {
+  color: var(--vscode-blue);
+  text-decoration: underline;
+}
+
+.patch-diff-line-content {
+  padding: 0 0.5rem;
+  white-space: pre;
+}
+
+.patch-diff-addition :is(.patch-diff-line-number, .patch-diff-line-content) {
   background: rgba(34, 197, 94, 0.1);
+}
+
+.patch-diff-addition .patch-diff-line-content {
   color: #16a34a;
 }
 
-.dark .patch-diff-addition {
+.dark .patch-diff-addition :is(.patch-diff-line-number, .patch-diff-line-content) {
   background: rgba(34, 197, 94, 0.15);
+}
+
+.dark .patch-diff-addition .patch-diff-line-content {
   color: #86efac;
 }
 
-.patch-diff-deletion {
+.patch-diff-deletion :is(.patch-diff-line-number, .patch-diff-line-content) {
   background: rgba(239, 68, 68, 0.1);
+}
+
+.patch-diff-deletion .patch-diff-line-content {
   color: #dc2626;
 }
 
-.dark .patch-diff-deletion {
+.dark .patch-diff-deletion :is(.patch-diff-line-number, .patch-diff-line-content) {
   background: rgba(239, 68, 68, 0.15);
+}
+
+.dark .patch-diff-deletion .patch-diff-line-content {
   color: #fca5a5;
 }
 
-.patch-diff-hunk {
-  color: var(--text-secondary);
+.patch-diff-hunk :is(.patch-diff-line-number, .patch-diff-line-content) {
   background: var(--bg-tertiary);
+}
+
+.patch-diff-hunk .patch-diff-line-content {
+  color: var(--text-secondary);
   font-weight: 500;
 }
 
-.patch-diff-header {
+.patch-diff-header .patch-diff-line-content {
   color: var(--text-tertiary);
   font-style: italic;
 }
