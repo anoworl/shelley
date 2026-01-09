@@ -3,7 +3,7 @@
 - Upstream: [boldsoftware/shelley](https://github.com/boldsoftware/shelley)
 - Base ref: `6bfc75b`
 - Fork: [anoworl/shelley](https://github.com/anoworl/shelley)
-- Purpose: Customizations for exe.dev VM deployment
+- Purpose: Battle-tested tweaks from heavy daily use
 
 ## Summary of changes
 
