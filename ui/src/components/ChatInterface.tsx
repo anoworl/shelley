@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from "react";
 import { Message, Conversation, StreamResponse, LLMContent } from "../types";
 import { api } from "../services/api";
 import { ThemeMode, getStoredTheme, setStoredTheme, applyTheme } from "../services/theme";
+import { buildVSCodeFolderUrl } from "../services/vscode";
+import { VSCodeIcon } from "./icons/VSCodeIcon";
 import MessageComponent from "./Message";
 import MessageInput from "./MessageInput";
 import DiffViewer from "./DiffViewer";
@@ -996,6 +998,18 @@ function ChatInterface({
         </div>
 
         <div className="header-actions">
+          {/* VSCode open button */}
+          {buildVSCodeFolderUrl(currentConversation?.cwd || selectedCwd) && (
+            <a
+              href={buildVSCodeFolderUrl(currentConversation?.cwd || selectedCwd)!}
+              className="btn-vscode"
+              aria-label="Open in VSCode"
+              title="Open in VSCode"
+            >
+              <VSCodeIcon size="0.875rem" />
+            </a>
+          )}
+
           {/* Green + icon in circle for new conversation */}
           <button onClick={onNewConversation} className="btn-new" aria-label="New conversation">
             <svg
