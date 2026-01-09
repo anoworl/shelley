@@ -1,7 +1,7 @@
 # Shelley: a coding agent for exe.dev
 
 This repository is a fork of [boldsoftware/shelley](https://github.com/boldsoftware/shelley) (base: `6bfc75b`).
-Fork goal: Customizations for exe.dev VM deployment. See `FORK_NOTES.md` for details.
+Fork goal: Battle-tested tweaks from heavy daily use. See `FORK_NOTES.md` for details.
 
 ---
 
