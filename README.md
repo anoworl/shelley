@@ -22,26 +22,35 @@ bring your own.
 
 # Installation
 
-## Pre-Built Binaries (macOS/Linux)
+## exe.dev VM (Recommended)
+
+### First Time Setup
+
+Connect via SSH (or terminal), then:
 
 ```bash
-curl -Lo shelley "https://github.com/boldsoftware/shelley/releases/latest/download/shelley_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')" && chmod +x shelley
+# Install Node.js and npm first if not already installed
+git clone https://github.com/anoworl/shelley.git ~/shelley
+cd ~/shelley
+make deploy
 ```
 
-The binaries are on the [releases page](https://github.com/boldsoftware/shelley/releases/latest).
+### Updating
 
-## Homebrew (macOS)
+Ask Shelley to update itself:
 
-```bash
-brew install --cask boldsoftware/tap/shelley
 ```
+cd /home/exedev/shelley && git pull && make build-linux, then deploy
+```
+
+Shelley will build and use the `deploy_self` tool to restart itself.
 
 ## Build from Source
 
 You'll need Go and Node.
 
 ```bash
-git clone https://github.com/boldsoftware/shelley.git
+git clone https://github.com/anoworl/shelley.git
 cd shelley
 make
 ```
