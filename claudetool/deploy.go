@@ -30,7 +30,7 @@ const deploySelfInputSchema = `{
 func (t *DeploySelfTool) Tool() *llm.Tool {
 	return &llm.Tool{
 		Name:        "deploy_self",
-		Description: "Deploy a new Shelley build to the exe.dev VM. This will stop the current Shelley service, copy the new binary, and restart the service. The source binary must already be built (e.g., via 'make build-linux'). The connection will be lost during deployment. IMPORTANT: After calling this tool, do NOT call any other tools. Immediately end your turn and tell the user to wait for the page to reload.",
+		Description: "Deploy a new Shelley build to the exe.dev VM. This will stop the current Shelley service, copy the new binary, and restart the service. The source binary must already be built (e.g., via 'make build-linux'). The connection will be lost during deployment. IMPORTANT: After calling this tool, do NOT call any other tools. Immediately end your turn and tell the user that the service will restart shortly, and if assets have changed, the page will reload automatically.",
 		InputSchema: llm.MustSchema(deploySelfInputSchema),
 		Run:         t.run,
 	}
