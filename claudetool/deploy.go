@@ -57,15 +57,10 @@ func (t *DeploySelfTool) run(ctx context.Context, input json.RawMessage) llm.Too
 
 	// Fork the deploy daemon using the NEW binary (not the running one)
 	// This avoids UI staleness checks failing on the old binary
-	cmd := exec.Command(params.SourceBinary, "deploy-daemon", params.SourceBinary)
+	// Use systemd-cat to send output to journald (viewable with: journalctl -t shelley-deploy)
+	cmd := exec.Command("systemd-cat", "--identifier=shelley-deploy", params.SourceBinary, "deploy-daemon", params.SourceBinary)
 	cmd.SysProcAttr = &syscall.SysProcAttr{
 		Setsid: true, // Create new session, detach from parent
-	}
-	// Redirect output to a log file for debugging
-	logFile, err := os.Create("/tmp/shelley-deploy.log")
-	if err == nil {
-		cmd.Stdout = logFile
-		cmd.Stderr = logFile
 	}
 
 	if err := cmd.Start(); err != nil {
