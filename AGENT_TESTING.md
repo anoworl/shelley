@@ -51,6 +51,36 @@ headless start
 
 ## Test Categories
 
+### Deploy Tool Tests
+
+**⚠️ CRITICAL: NEVER run `sudo systemctl stop shelley.service` directly!**
+
+Running this command will stop the Shelley instance you are running under, terminating your connection.
+
+To test the `deploy_self` tool:
+
+1. Build the new binary: `make build-linux`
+2. Call the `deploy_self` tool with the source binary path
+3. The tool spawns a daemon that handles stop → copy → start automatically
+4. Your connection will be lost during deployment - this is expected
+5. After reconnecting, verify the deployment succeeded:
+   ```bash
+   cat /tmp/shelley-deploy.log
+   systemctl status shelley.service
+   ```
+
+**Testing flow:**
+```bash
+# 1. Make a visible change (e.g., UI text)
+# 2. Build
+cd ~/shelley && make build-linux
+
+# 3. Deploy (use the tool, NOT manual systemctl commands)
+# Call deploy_self tool with source_binary: /home/exedev/shelley/bin/shelley-linux
+
+# 4. After reconnecting, verify the change is live
+```
+
 ### CLI Tests
 
 Test these commands manually:

@@ -26,3 +26,11 @@
     ./bin/shelley -config /exe.dev/shelley.json -db /tmp/shelley-test.db serve -port 8002
     ```
     Then use browser tools to navigate to http://localhost:8002/ and interact with the UI.
+12. Do NOT commit without explicit user permission. Always ask before committing.
+13. Before modifying any file, check if there's an AGENT.md in that directory or parent directories. Read it first.
+14. All documentation must be written in English.
+
+## Related Documentation
+
+- [AGENT_TESTING.md](./AGENT_TESTING.md) - Testing guide
+- [AGENT_COMMITTING.md](./AGENT_COMMITTING.md) - Git & PR guidelines
