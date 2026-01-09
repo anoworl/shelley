@@ -47,6 +47,7 @@ type StreamResponse struct {
 	Conversation      generated.Conversation `json:"conversation"`
 	AgentWorking      bool                   `json:"agent_working"`
 	ContextWindowSize uint64                 `json:"context_window_size,omitempty"`
+	AssetHash         string                 `json:"asset_hash,omitempty"`
 }
 
 // LLMProvider is an interface for getting LLM services
@@ -243,10 +244,11 @@ type Server struct {
 	links               []Link
 	requireHeader       string
 	conversationGroup   singleflight.Group[string, *ConversationManager]
+	assetHash           string
 }
 
 // NewServer creates a new server instance
-func NewServer(database *db.DB, llmManager LLMProvider, toolSetConfig claudetool.ToolSetConfig, logger *slog.Logger, predictableOnly bool, terminalURL, defaultModel, requireHeader string, links []Link) *Server {
+func NewServer(database *db.DB, llmManager LLMProvider, toolSetConfig claudetool.ToolSetConfig, logger *slog.Logger, predictableOnly bool, terminalURL, defaultModel, requireHeader string, links []Link, assetHash string) *Server {
 	return &Server{
 		db:                  database,
 		llmManager:          llmManager,
@@ -258,6 +260,7 @@ func NewServer(database *db.DB, llmManager LLMProvider, toolSetConfig claudetool
 		defaultModel:        defaultModel,
 		requireHeader:       requireHeader,
 		links:               links,
+		assetHash:           assetHash,
 	}
 }
 

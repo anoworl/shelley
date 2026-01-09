@@ -60,6 +60,7 @@ export interface ChatRequest {
 export interface StreamResponse extends Omit<StreamResponseForTS, "messages"> {
   messages: Message[];
   context_window_size?: number;
+  asset_hash?: string;
 }
 
 // Link represents a custom link that can be added to the UI

@@ -16,6 +16,7 @@ import ReadImageTool from "./ReadImageTool";
 import BrowserConsoleLogsTool from "./BrowserConsoleLogsTool";
 import ChangeDirTool from "./ChangeDirTool";
 import BrowserResizeTool from "./BrowserResizeTool";
+import DeploySelfTool from "./DeploySelfTool";
 import DirectoryPickerModal from "./DirectoryPickerModal";
 
 interface ContextUsageBarProps {
@@ -144,6 +145,7 @@ const TOOL_COMPONENTS: Record<string, React.ComponentType<any>> = {
   browser_clear_console_logs: BrowserConsoleLogsTool,
   change_dir: ChangeDirTool,
   browser_resize: BrowserResizeTool,
+  deploy_self: DeploySelfTool,
 };
 
 function CoalescedToolCall({
@@ -444,6 +446,7 @@ function ChatInterface({
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [reconnectAttempts, setReconnectAttempts] = useState(0);
   const [isDisconnected, setIsDisconnected] = useState(false);
+  const initialAssetHashRef = useRef<string | null>(null);
   const [showScrollToBottom, setShowScrollToBottom] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -553,6 +556,18 @@ function ChatInterface({
         const incomingMessages = Array.isArray(streamResponse.messages)
           ? streamResponse.messages
           : [];
+
+        // Track asset hash for detecting server restarts with new code
+        if (streamResponse.asset_hash) {
+          if (initialAssetHashRef.current === null) {
+            // First time seeing asset hash, store it
+            initialAssetHashRef.current = streamResponse.asset_hash;
+          } else if (initialAssetHashRef.current !== streamResponse.asset_hash) {
+            // Asset hash changed, server was restarted with new code
+            window.location.reload();
+            return;
+          }
+        }
 
         // Merge new messages without losing existing ones.
         // If no new messages (e.g., only conversation/slug update), keep existing list.
