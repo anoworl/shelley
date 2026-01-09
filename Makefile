@@ -1,6 +1,6 @@
 # Shelley Makefile
 
-.PHONY: build build-linux-aarch64 build-linux-x86 test test-go test-e2e ui serve clean help templates
+.PHONY: build build-linux-aarch64 build-linux-x86 test test-go test-e2e ui serve clean help templates deploy
 
 # Default target
 all: build
@@ -78,6 +78,15 @@ serve: ui
 	@echo "Starting Shelley..."
 	go run ./cmd/shelley serve
 
+# Deploy to exe.dev VM
+deploy: build-linux
+	@echo "Deploying Shelley to exe.dev VM..."
+	sudo systemctl stop --force shelley.service
+	sudo cp bin/shelley-linux /usr/local/bin/shelley
+	sudo chmod 0755 /usr/local/bin/shelley
+	sudo systemctl start shelley.service
+	@echo "Done. Check status with: systemctl status shelley.service"
+
 # Clean build artifacts
 clean:
 	@echo "Cleaning..."
@@ -105,6 +114,7 @@ help:
 	@echo "  test-e2e-ui   Open E2E test UI"
 	@echo "  serve         Start Shelley server"
 	@echo "  serve-test    Start Shelley with predictable model"
+	@echo "  deploy        Deploy to exe.dev VM and restart service"
 	@echo "  clean         Clean build artifacts"
 	@echo "  help          Show this help"
 

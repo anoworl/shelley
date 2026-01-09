@@ -112,12 +112,15 @@ func NewToolSet(ctx context.Context, cfg ToolSetConfig) *ToolSet {
 		OnChange:   cfg.OnWorkingDirChange,
 	}
 
+	deploySelfTool := &DeploySelfTool{}
+
 	tools := []*llm.Tool{
 		Think,
 		bashTool.Tool(),
 		patchTool.Tool(),
 		keywordTool.Tool(),
 		changeDirTool.Tool(),
+		deploySelfTool.Tool(),
 	}
 
 	var cleanup func()

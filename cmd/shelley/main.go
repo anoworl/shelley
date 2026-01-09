@@ -5,9 +5,11 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"log/slog"
 	"net"
 	"os"
+	"os/exec"
 	"strconv"
 	"strings"
 
@@ -16,6 +18,7 @@ import (
 	"shelley.exe.dev/models"
 	"shelley.exe.dev/server"
 	"shelley.exe.dev/templates"
+	"shelley.exe.dev/ui"
 	"shelley.exe.dev/version"
 )
 
@@ -76,6 +79,8 @@ func main() {
 		runUnpackTemplate(args[1:])
 	case "version":
 		runVersion()
+	case "deploy-daemon":
+		runDeployDaemon(args[1:])
 	default:
 		fmt.Fprintf(os.Stderr, "Unknown command: %s\n", command)
 		flag.Usage()
@@ -113,8 +118,15 @@ func runServe(global GlobalConfig, args []string) {
 
 	toolSetConfig := setupToolSetConfig(llmManager)
 
+	// Get asset hash for cache invalidation
+	assetHash := ""
+	if checksums := ui.Checksums(); checksums != nil {
+		assetHash = checksums["main.js"]
+	}
+
 	// Create server
 	svr := server.NewServer(database, llmManager, toolSetConfig, logger, global.PredictableOnly, llmConfig.TerminalURL, llmConfig.DefaultModel, *requireHeader, llmConfig.Links)
+	svr.SetAssetHash(assetHash)
 
 	var err error
 	if *systemdActivation {
@@ -223,6 +235,62 @@ func runUnpackTemplate(args []string) {
 	}
 
 	fmt.Printf("Template %q unpacked to %s\n", templateName, destDir)
+}
+
+// runDeployDaemon stops the service, copies the binary, and restarts the service.
+// Usage: shelley deploy-daemon <source-binary>
+func runDeployDaemon(args []string) {
+	if len(args) < 1 {
+		fmt.Fprintf(os.Stderr, "Usage: shelley deploy-daemon <source-binary>\n")
+		os.Exit(1)
+	}
+
+	sourceBinary := args[0]
+
+	// Stop service with immediate kill (no graceful shutdown timeout)
+	stopCmd := exec.Command("sudo", "systemctl", "stop", "--force", "shelley.service")
+	if err := stopCmd.Run(); err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to stop service: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Copy binary
+	if err := copyFile(sourceBinary, "/usr/local/bin/shelley"); err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to copy binary: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Make executable
+	if err := os.Chmod("/usr/local/bin/shelley", 0755); err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to chmod: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Start service
+	startCmd := exec.Command("sudo", "systemctl", "start", "shelley.service")
+	if err := startCmd.Run(); err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to start service: %v\n", err)
+		os.Exit(1)
+	}
+
+	fmt.Println("Deploy completed successfully")
+}
+
+func copyFile(src, dst string) error {
+	in, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer in.Close()
+
+	out, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+
+	_, err = io.Copy(out, in)
+	return err
 }
 
 // runVersion prints version information as JSON

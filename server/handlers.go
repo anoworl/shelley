@@ -857,6 +857,7 @@ func (s *Server) handleStreamConversation(w http.ResponseWriter, r *http.Request
 		Conversation:      conversation,
 		AgentWorking:      agentWorking(apiMessages),
 		ContextWindowSize: calculateContextWindowSize(apiMessages),
+		AssetHash:         s.assetHash,
 	}
 	data, _ := json.Marshal(streamData)
 	fmt.Fprintf(w, "data: %s\n\n", data)

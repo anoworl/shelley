@@ -12,6 +12,7 @@ import ReadImageTool from "./ReadImageTool";
 import BrowserConsoleLogsTool from "./BrowserConsoleLogsTool";
 import ChangeDirTool from "./ChangeDirTool";
 import BrowserResizeTool from "./BrowserResizeTool";
+import DeploySelfTool from "./DeploySelfTool";
 import ContextMenu from "./ContextMenu";
 import UsageDetailModal from "./UsageDetailModal";
 
@@ -396,6 +397,10 @@ function Message({ message, onOpenDiffViewer }: MessageProps) {
             />
           );
         }
+        // Use specialized component for deploy_self tool
+        if (content.ToolName === "deploy_self") {
+          return <DeploySelfTool toolInput={content.ToolInput} isRunning={true} />;
+        }
         // Default rendering for other tools using GenericTool
         return (
           <GenericTool
@@ -590,6 +595,19 @@ function Message({ message, onOpenDiffViewer }: MessageProps) {
           return (
             <BrowserConsoleLogsTool
               toolName={toolName}
+              toolInput={toolInput}
+              isRunning={false}
+              toolResult={content.ToolResult}
+              hasError={hasError}
+              executionTime={executionTime}
+            />
+          );
+        }
+
+        // Use specialized component for deploy_self tool
+        if (toolName === "deploy_self") {
+          return (
+            <DeploySelfTool
               toolInput={toolInput}
               isRunning={false}
               toolResult={content.ToolResult}

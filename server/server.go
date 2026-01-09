@@ -47,6 +47,7 @@ type StreamResponse struct {
 	Conversation      generated.Conversation `json:"conversation"`
 	AgentWorking      bool                   `json:"agent_working"`
 	ContextWindowSize uint64                 `json:"context_window_size,omitempty"`
+	AssetHash         string                 `json:"asset_hash,omitempty"`
 }
 
 // LLMProvider is an interface for getting LLM services
@@ -243,6 +244,7 @@ type Server struct {
 	links               []Link
 	requireHeader       string
 	conversationGroup   singleflight.Group[string, *ConversationManager]
+	assetHash           string
 }
 
 // NewServer creates a new server instance
@@ -259,6 +261,11 @@ func NewServer(database *db.DB, llmManager LLMProvider, toolSetConfig claudetool
 		requireHeader:       requireHeader,
 		links:               links,
 	}
+}
+
+// SetAssetHash sets the asset hash for UI reload detection after deployment
+func (s *Server) SetAssetHash(hash string) {
+	s.assetHash = hash
 }
 
 // RegisterRoutes registers HTTP routes on the given mux
