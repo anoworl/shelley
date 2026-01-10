@@ -5,7 +5,7 @@ This document provides instructions for automated testing of the Shelley coding 
 ## Prerequisites
 
 - `ANTHROPIC_API_KEY` environment variable set
-- Node.js and npm installed
+- Node.js installed (pnpm via corepack)
 - Go installed
 - `headless` browser tool available (check with `which headless`)
 
@@ -19,7 +19,7 @@ make build
 ```
 
 This will:
-- Build the UI (`npm install && npm run build`)
+- Build the UI (`cd ui && pnpm install && pnpm run build`)
 - Create template tarballs
 - Build the Go binary to `bin/shelley`
 
@@ -27,7 +27,7 @@ This will:
 
 ```bash
 cd ui
-npm install
+pnpm install
 npx playwright install chromium
 ```
 
@@ -96,14 +96,14 @@ Run the full E2E test suite:
 
 ```bash
 cd ui
-npm run test:e2e
+pnpm run test:e2e
 ```
 
 Run specific test files:
 ```bash
-npm run test:e2e -- --grep "smoke"
-npm run test:e2e -- --grep "conversation"
-npm run test:e2e -- --grep "cancellation"
+pnpm run test:e2e -- --grep "smoke"
+pnpm run test:e2e -- --grep "conversation"
+pnpm run test:e2e -- --grep "cancellation"
 ```
 
 ### Headless Browser Testing

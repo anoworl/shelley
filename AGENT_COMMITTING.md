@@ -165,7 +165,7 @@ Each commit should contain only one logical change.
 
 Verify before committing:
 
-- [ ] `npm run build` (UI) succeeds
+- [ ] `pnpm run build` (UI) succeeds
 - [ ] `go build ./...` succeeds
 - [ ] Related tests pass
 - [ ] No TypeScript type errors
