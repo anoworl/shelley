@@ -1,4 +1,5 @@
 import React from "react";
+import ReactDOM from "react-dom";
 
 interface ContextMenuProps {
   x: number;
@@ -48,7 +49,7 @@ function ContextMenu({ x, y, onClose, items }: ContextMenuProps) {
     return () => document.removeEventListener("keydown", handleEscape);
   }, [onClose]);
 
-  return (
+  const menu = (
     <div
       data-context-menu
       style={{
@@ -100,6 +101,8 @@ function ContextMenu({ x, y, onClose, items }: ContextMenuProps) {
       ))}
     </div>
   );
+
+  return ReactDOM.createPortal(menu, document.body);
 }
 
 export default ContextMenu;

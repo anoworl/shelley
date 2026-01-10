@@ -481,9 +481,26 @@ button {
   gap: 0.25rem;
 }
 
+.drawer-title-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
 .drawer-title {
   font-size: 1.125rem;
   font-weight: 600;
+}
+
+.drawer-hostname {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  text-decoration: none;
+}
+
+.drawer-hostname:hover {
+  color: var(--text-primary);
+  text-decoration: underline;
 }
 
 .drawer-body {

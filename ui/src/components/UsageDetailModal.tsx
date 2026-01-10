@@ -1,4 +1,5 @@
 import React from "react";
+import ReactDOM from "react-dom";
 import { Usage } from "../types";
 
 interface UsageDetailModalProps {
@@ -39,7 +40,7 @@ function UsageDetailModal({ usage, durationMs, onClose }: UsageDetailModalProps)
     return () => document.removeEventListener("keydown", handleEscape);
   }, [onClose]);
 
-  return (
+  const modal = (
     <div
       style={{
         position: "fixed",
@@ -161,6 +162,8 @@ function UsageDetailModal({ usage, durationMs, onClose }: UsageDetailModalProps)
       </div>
     </div>
   );
+
+  return ReactDOM.createPortal(modal, document.body);
 }
 
 export default UsageDetailModal;

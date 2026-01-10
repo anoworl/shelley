@@ -11,6 +11,8 @@
 - Add Claude GitHub Actions for PR assistant and code review (files: `.github/workflows/claude.yml`, `.github/workflows/claude-code-review.yml`)
 - Use instant scroll instead of smooth scroll for faster initial load (files: `ui/src/components/ChatInterface.tsx`)
 - Add VSCode open button in header and clickable line numbers in PatchTool (files: `ui/src/components/ChatInterface.tsx`, `ui/src/components/PatchTool.tsx`, `ui/src/components/icons/VSCodeIcon.tsx`, `ui/src/services/vscode.ts`, `ui/src/styles.css`, `NOTICES`)
+- Add virtual scrolling with virtua for better performance on long conversations; portal ContextMenu and UsageDetailModal to fix z-index issues (files: `ui/package.json`, `ui/src/components/ChatInterface.tsx`, `ui/src/components/ContextMenu.tsx`, `ui/src/components/UsageDetailModal.tsx`)
+- Add hostname link in drawer header for quick proxy URL access (files: `ui/src/components/ConversationDrawer.tsx`, `ui/src/styles.css`)
 
 ## Compatibility / behavior changes
 

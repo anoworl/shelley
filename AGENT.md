@@ -29,8 +29,5 @@
 12. Do NOT commit without explicit user permission. Always ask before committing.
 13. Before modifying any file, check if there's an AGENT.md in that directory or parent directories. Read it first.
 14. All documentation must be written in English.
-
-## Related Documentation
-
-- [AGENT_TESTING.md](./AGENT_TESTING.md) - Testing guide
-- [AGENT_COMMITTING.md](./AGENT_COMMITTING.md) - Git & PR guidelines
+15. Before committing, read [AGENT_COMMITTING.md](./AGENT_COMMITTING.md) for commit message format, branch naming, and PR guidelines.
+16. Before running tests, read [AGENT_TESTING.md](./AGENT_TESTING.md) for testing conventions.
