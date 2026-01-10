@@ -15,6 +15,7 @@
 - Add hostname link in drawer header for quick proxy URL access (files: `ui/src/components/ConversationDrawer.tsx`, `ui/src/styles.css`)
 - Add agent status indicator and context bar to conversation list with real-time updates via SSE (files: `db/schema/009-add-agent-working.sql`, `db/schema/010-add-context-window-size.sql`, `db/query/conversations.sql`, `server/server.go`, `server/handlers.go`, `ui/src/App.tsx`, `ui/src/components/ConversationDrawer.tsx`, `ui/src/services/api.ts`, `ui/src/styles.css`)
 - Add swipe gesture to open/close conversation drawer on mobile (files: `ui/src/hooks/useSwipeDrawer.ts`, `ui/src/App.tsx`)
+- Auto-detect and display GitHub PR/issue links in conversation list (files: `db/schema/012-add-github-urls.sql`, `server/github_urls.go`, `server/server.go`, `ui/src/components/ConversationDrawer.tsx`, `ui/src/styles.css`)
 
 ## Compatibility / behavior changes
 
