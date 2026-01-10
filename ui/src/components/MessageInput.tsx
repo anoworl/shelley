@@ -52,6 +52,10 @@ interface MessageInputProps {
   onClearInjectedText?: () => void;
   /** If set, persist draft message to localStorage under this key */
   persistKey?: string;
+  /** On mobile, whether input is visible */
+  mobileVisible?: boolean;
+  /** Called when input loses focus on mobile (to hide it) */
+  onMobileBlur?: () => void;
 }
 
 const PERSIST_KEY_PREFIX = "shelley_draft_";
@@ -64,6 +68,8 @@ function MessageInput({
   injectedText,
   onClearInjectedText,
   persistKey,
+  mobileVisible = true,
+  onMobileBlur,
 }: MessageInputProps) {
   const [message, setMessage] = useState(() => {
     // Load persisted draft if persistKey is set
@@ -353,6 +359,14 @@ function MessageInput({
   const isDraggingOver = dragCounter > 0;
   // Note: injectedText is auto-inserted via useEffect, no manual UI needed
 
+  // Check if we're on mobile
+  const isMobile = typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches;
+  
+  // On mobile, hide if not visible (unless there's draft text)
+  if (isMobile && !mobileVisible && !message.trim()) {
+    return null;
+  }
+
   return (
     <div
       className={`message-input-container ${isDraggingOver ? "drag-over" : ""}`}
@@ -379,13 +393,24 @@ function MessageInput({
               requestAnimationFrame(() => requestAnimationFrame(onFocus));
             }
           }}
-          placeholder="Message, paste image, or attach file..."
+          onBlur={() => {
+            // On mobile, hide input when focus is lost (if empty)
+            if (onMobileBlur && !message.trim()) {
+              // Delay to allow button clicks to register
+              setTimeout(() => {
+                if (!textareaRef.current?.matches(':focus')) {
+                  onMobileBlur();
+                }
+              }, 100);
+            }
+          }}
           className="message-textarea"
           disabled={isDisabled}
           rows={1}
           aria-label="Message input"
           data-testid="message-input"
           autoFocus={autoFocus}
+          placeholder={isMobile ? "" : "Message, paste image, or attach file..."}
         />
         {speechRecognitionAvailable && (
           <button
