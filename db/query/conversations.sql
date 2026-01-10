@@ -88,3 +88,8 @@ WHERE conversation_id = ?;
 UPDATE conversations
 SET agent_error = ?, updated_at = CURRENT_TIMESTAMP
 WHERE conversation_id = ?;
+
+-- name: UpdateConversationGitHubUrls :exec
+UPDATE conversations
+SET github_urls = ?, updated_at = CURRENT_TIMESTAMP
+WHERE conversation_id = ?;
