@@ -13,7 +13,7 @@ const archiveConversation = `-- name: ArchiveConversation :one
 UPDATE conversations
 SET archived = TRUE, updated_at = CURRENT_TIMESTAMP
 WHERE conversation_id = ?
-RETURNING conversation_id, slug, user_initiated, created_at, updated_at, cwd, archived
+RETURNING conversation_id, slug, user_initiated, created_at, updated_at, cwd, archived, agent_working, context_window_size
 `
 
 func (q *Queries) ArchiveConversation(ctx context.Context, conversationID string) (Conversation, error) {
@@ -27,6 +27,8 @@ func (q *Queries) ArchiveConversation(ctx context.Context, conversationID string
 		&i.UpdatedAt,
 		&i.Cwd,
 		&i.Archived,
+		&i.AgentWorking,
+		&i.ContextWindowSize,
 	)
 	return i, err
 }
@@ -56,7 +58,7 @@ func (q *Queries) CountConversations(ctx context.Context) (int64, error) {
 const createConversation = `-- name: CreateConversation :one
 INSERT INTO conversations (conversation_id, slug, user_initiated, cwd)
 VALUES (?, ?, ?, ?)
-RETURNING conversation_id, slug, user_initiated, created_at, updated_at, cwd, archived
+RETURNING conversation_id, slug, user_initiated, created_at, updated_at, cwd, archived, agent_working, context_window_size
 `
 
 type CreateConversationParams struct {
@@ -82,6 +84,8 @@ func (q *Queries) CreateConversation(ctx context.Context, arg CreateConversation
 		&i.UpdatedAt,
 		&i.Cwd,
 		&i.Archived,
+		&i.AgentWorking,
+		&i.ContextWindowSize,
 	)
 	return i, err
 }
@@ -97,7 +101,7 @@ func (q *Queries) DeleteConversation(ctx context.Context, conversationID string)
 }
 
 const getConversation = `-- name: GetConversation :one
-SELECT conversation_id, slug, user_initiated, created_at, updated_at, cwd, archived FROM conversations
+SELECT conversation_id, slug, user_initiated, created_at, updated_at, cwd, archived, agent_working, context_window_size FROM conversations
 WHERE conversation_id = ?
 `
 
@@ -112,12 +116,14 @@ func (q *Queries) GetConversation(ctx context.Context, conversationID string) (C
 		&i.UpdatedAt,
 		&i.Cwd,
 		&i.Archived,
+		&i.AgentWorking,
+		&i.ContextWindowSize,
 	)
 	return i, err
 }
 
 const getConversationBySlug = `-- name: GetConversationBySlug :one
-SELECT conversation_id, slug, user_initiated, created_at, updated_at, cwd, archived FROM conversations
+SELECT conversation_id, slug, user_initiated, created_at, updated_at, cwd, archived, agent_working, context_window_size FROM conversations
 WHERE slug = ?
 `
 
@@ -132,12 +138,14 @@ func (q *Queries) GetConversationBySlug(ctx context.Context, slug *string) (Conv
 		&i.UpdatedAt,
 		&i.Cwd,
 		&i.Archived,
+		&i.AgentWorking,
+		&i.ContextWindowSize,
 	)
 	return i, err
 }
 
 const listArchivedConversations = `-- name: ListArchivedConversations :many
-SELECT conversation_id, slug, user_initiated, created_at, updated_at, cwd, archived FROM conversations
+SELECT conversation_id, slug, user_initiated, created_at, updated_at, cwd, archived, agent_working, context_window_size FROM conversations
 WHERE archived = TRUE
 ORDER BY updated_at DESC
 LIMIT ? OFFSET ?
@@ -165,6 +173,8 @@ func (q *Queries) ListArchivedConversations(ctx context.Context, arg ListArchive
 			&i.UpdatedAt,
 			&i.Cwd,
 			&i.Archived,
+			&i.AgentWorking,
+			&i.ContextWindowSize,
 		); err != nil {
 			return nil, err
 		}
@@ -180,7 +190,7 @@ func (q *Queries) ListArchivedConversations(ctx context.Context, arg ListArchive
 }
 
 const listConversations = `-- name: ListConversations :many
-SELECT conversation_id, slug, user_initiated, created_at, updated_at, cwd, archived FROM conversations
+SELECT conversation_id, slug, user_initiated, created_at, updated_at, cwd, archived, agent_working, context_window_size FROM conversations
 WHERE archived = FALSE
 ORDER BY updated_at DESC
 LIMIT ? OFFSET ?
@@ -208,6 +218,8 @@ func (q *Queries) ListConversations(ctx context.Context, arg ListConversationsPa
 			&i.UpdatedAt,
 			&i.Cwd,
 			&i.Archived,
+			&i.AgentWorking,
+			&i.ContextWindowSize,
 		); err != nil {
 			return nil, err
 		}
@@ -223,7 +235,7 @@ func (q *Queries) ListConversations(ctx context.Context, arg ListConversationsPa
 }
 
 const searchArchivedConversations = `-- name: SearchArchivedConversations :many
-SELECT conversation_id, slug, user_initiated, created_at, updated_at, cwd, archived FROM conversations
+SELECT conversation_id, slug, user_initiated, created_at, updated_at, cwd, archived, agent_working, context_window_size FROM conversations
 WHERE slug LIKE '%' || ? || '%' AND archived = TRUE
 ORDER BY updated_at DESC
 LIMIT ? OFFSET ?
@@ -252,6 +264,8 @@ func (q *Queries) SearchArchivedConversations(ctx context.Context, arg SearchArc
 			&i.UpdatedAt,
 			&i.Cwd,
 			&i.Archived,
+			&i.AgentWorking,
+			&i.ContextWindowSize,
 		); err != nil {
 			return nil, err
 		}
@@ -267,7 +281,7 @@ func (q *Queries) SearchArchivedConversations(ctx context.Context, arg SearchArc
 }
 
 const searchConversations = `-- name: SearchConversations :many
-SELECT conversation_id, slug, user_initiated, created_at, updated_at, cwd, archived FROM conversations
+SELECT conversation_id, slug, user_initiated, created_at, updated_at, cwd, archived, agent_working, context_window_size FROM conversations
 WHERE slug LIKE '%' || ? || '%' AND archived = FALSE
 ORDER BY updated_at DESC
 LIMIT ? OFFSET ?
@@ -296,6 +310,8 @@ func (q *Queries) SearchConversations(ctx context.Context, arg SearchConversatio
 			&i.UpdatedAt,
 			&i.Cwd,
 			&i.Archived,
+			&i.AgentWorking,
+			&i.ContextWindowSize,
 		); err != nil {
 			return nil, err
 		}
@@ -314,7 +330,7 @@ const unarchiveConversation = `-- name: UnarchiveConversation :one
 UPDATE conversations
 SET archived = FALSE, updated_at = CURRENT_TIMESTAMP
 WHERE conversation_id = ?
-RETURNING conversation_id, slug, user_initiated, created_at, updated_at, cwd, archived
+RETURNING conversation_id, slug, user_initiated, created_at, updated_at, cwd, archived, agent_working, context_window_size
 `
 
 func (q *Queries) UnarchiveConversation(ctx context.Context, conversationID string) (Conversation, error) {
@@ -328,15 +344,49 @@ func (q *Queries) UnarchiveConversation(ctx context.Context, conversationID stri
 		&i.UpdatedAt,
 		&i.Cwd,
 		&i.Archived,
+		&i.AgentWorking,
+		&i.ContextWindowSize,
 	)
 	return i, err
+}
+
+const updateConversationAgentWorking = `-- name: UpdateConversationAgentWorking :exec
+UPDATE conversations
+SET agent_working = ?, updated_at = CURRENT_TIMESTAMP
+WHERE conversation_id = ?
+`
+
+type UpdateConversationAgentWorkingParams struct {
+	AgentWorking   bool   `json:"agent_working"`
+	ConversationID string `json:"conversation_id"`
+}
+
+func (q *Queries) UpdateConversationAgentWorking(ctx context.Context, arg UpdateConversationAgentWorkingParams) error {
+	_, err := q.db.ExecContext(ctx, updateConversationAgentWorking, arg.AgentWorking, arg.ConversationID)
+	return err
+}
+
+const updateConversationContextWindowSize = `-- name: UpdateConversationContextWindowSize :exec
+UPDATE conversations
+SET context_window_size = ?, updated_at = CURRENT_TIMESTAMP
+WHERE conversation_id = ?
+`
+
+type UpdateConversationContextWindowSizeParams struct {
+	ContextWindowSize int64  `json:"context_window_size"`
+	ConversationID    string `json:"conversation_id"`
+}
+
+func (q *Queries) UpdateConversationContextWindowSize(ctx context.Context, arg UpdateConversationContextWindowSizeParams) error {
+	_, err := q.db.ExecContext(ctx, updateConversationContextWindowSize, arg.ContextWindowSize, arg.ConversationID)
+	return err
 }
 
 const updateConversationCwd = `-- name: UpdateConversationCwd :one
 UPDATE conversations
 SET cwd = ?, updated_at = CURRENT_TIMESTAMP
 WHERE conversation_id = ?
-RETURNING conversation_id, slug, user_initiated, created_at, updated_at, cwd, archived
+RETURNING conversation_id, slug, user_initiated, created_at, updated_at, cwd, archived, agent_working, context_window_size
 `
 
 type UpdateConversationCwdParams struct {
@@ -355,6 +405,8 @@ func (q *Queries) UpdateConversationCwd(ctx context.Context, arg UpdateConversat
 		&i.UpdatedAt,
 		&i.Cwd,
 		&i.Archived,
+		&i.AgentWorking,
+		&i.ContextWindowSize,
 	)
 	return i, err
 }
@@ -363,7 +415,7 @@ const updateConversationSlug = `-- name: UpdateConversationSlug :one
 UPDATE conversations
 SET slug = ?, updated_at = CURRENT_TIMESTAMP
 WHERE conversation_id = ?
-RETURNING conversation_id, slug, user_initiated, created_at, updated_at, cwd, archived
+RETURNING conversation_id, slug, user_initiated, created_at, updated_at, cwd, archived, agent_working, context_window_size
 `
 
 type UpdateConversationSlugParams struct {
@@ -382,6 +434,8 @@ func (q *Queries) UpdateConversationSlug(ctx context.Context, arg UpdateConversa
 		&i.UpdatedAt,
 		&i.Cwd,
 		&i.Archived,
+		&i.AgentWorking,
+		&i.ContextWindowSize,
 	)
 	return i, err
 }

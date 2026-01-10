@@ -272,6 +272,10 @@ function ConversationDrawer({
                     }}
                     style={{ cursor: showArchived ? "default" : "pointer" }}
                   >
+                    <span
+                      className={`agent-status-indicator ${conversation.agent_working ? "working" : "stopped"}`}
+                      title={conversation.agent_working ? "Agent is working" : "Waiting for input"}
+                    />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       {editingId === conversation.conversation_id ? (
                         <input
@@ -308,6 +312,19 @@ function ConversationDrawer({
                           <span className="conversation-cwd" title={conversation.cwd}>
                             {formatCwdForDisplay(conversation.cwd)}
                           </span>
+                        )}
+                        {conversation.context_window_size > 0 && (
+                          <div
+                            className="conversation-context-bar"
+                            title={`${Math.round(conversation.context_window_size / 1000)}k tokens`}
+                          >
+                            <div
+                              className="conversation-context-fill"
+                              style={{
+                                width: `${Math.min((conversation.context_window_size / 200000) * 100, 100)}%`,
+                              }}
+                            />
+                          </div>
                         )}
                       </div>
                     </div>

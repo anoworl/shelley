@@ -9,13 +9,15 @@ import (
 )
 
 type Conversation struct {
-	ConversationID string    `json:"conversation_id"`
-	Slug           *string   `json:"slug"`
-	UserInitiated  bool      `json:"user_initiated"`
-	CreatedAt      time.Time `json:"created_at"`
-	UpdatedAt      time.Time `json:"updated_at"`
-	Cwd            *string   `json:"cwd"`
-	Archived       bool      `json:"archived"`
+	ConversationID    string    `json:"conversation_id"`
+	Slug              *string   `json:"slug"`
+	UserInitiated     bool      `json:"user_initiated"`
+	CreatedAt         time.Time `json:"created_at"`
+	UpdatedAt         time.Time `json:"updated_at"`
+	Cwd               *string   `json:"cwd"`
+	Archived          bool      `json:"archived"`
+	AgentWorking      bool      `json:"agent_working"`
+	ContextWindowSize int64     `json:"context_window_size"`
 }
 
 type Message struct {
