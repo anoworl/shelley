@@ -242,6 +242,14 @@ function ConversationDrawer({
     return result;
   }, [displayedConversations]);
 
+  // Scroll to top when the first group changes (most recent conversation updated)
+  const firstGroupName = groupedConversations[0]?.repoName;
+  useEffect(() => {
+    if (drawerBodyRef.current) {
+      drawerBodyRef.current.scrollTop = 0;
+    }
+  }, [firstGroupName]);
+
   // Render a single conversation item
   const renderConversationItem = (conversation: Conversation) => {
     const isActive = conversation.conversation_id === currentConversationId;
