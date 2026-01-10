@@ -110,3 +110,17 @@ func (g *GitState) String() string {
 	}
 	return worktreeName + " (detached) now at " + g.Commit
 }
+
+// GetGitOrigin returns the git remote origin URL for the given directory.
+// Returns empty string if not in a git repository or no origin is configured.
+func GetGitOrigin(dir string) string {
+	cmd := exec.Command("git", "remote", "get-url", "origin")
+	if dir != "" {
+		cmd.Dir = dir
+	}
+	output, err := cmd.Output()
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(string(output))
+}

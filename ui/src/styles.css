@@ -541,6 +541,19 @@ button {
   padding: 0.5rem;
 }
 
+.conversation-group {
+  margin-bottom: 0.5rem;
+}
+
+.conversation-group-header {
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  padding: 0.5rem 0.75rem 0.25rem;
+  text-transform: lowercase;
+  letter-spacing: 0.02em;
+}
+
 .conversation-item {
   width: 100%;
   text-align: left;

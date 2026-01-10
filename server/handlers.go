@@ -21,6 +21,7 @@ import (
 
 	"shelley.exe.dev/claudetool/browse"
 	"shelley.exe.dev/db/generated"
+	"shelley.exe.dev/gitstate"
 	"shelley.exe.dev/llm"
 	"shelley.exe.dev/models"
 	"shelley.exe.dev/slug"
@@ -718,12 +719,16 @@ func (s *Server) handleNewConversation(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Create new conversation with optional cwd
+	// Create new conversation with optional cwd and git origin
 	var cwdPtr *string
+	var gitOriginPtr *string
 	if req.Cwd != "" {
 		cwdPtr = &req.Cwd
+		if origin := gitstate.GetGitOrigin(req.Cwd); origin != "" {
+			gitOriginPtr = &origin
+		}
 	}
-	conversation, err := s.db.CreateConversation(ctx, nil, true, cwdPtr)
+	conversation, err := s.db.CreateConversation(ctx, nil, true, cwdPtr, gitOriginPtr)
 	if err != nil {
 		s.logger.Error("Failed to create conversation", "error", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)

@@ -219,7 +219,7 @@ func WithTxRes[T any](db *DB, ctx context.Context, fn func(*generated.Queries) (
 // Conversation methods (moved from ConversationService)
 
 // CreateConversation creates a new conversation with an optional slug
-func (db *DB) CreateConversation(ctx context.Context, slug *string, userInitiated bool, cwd *string) (*generated.Conversation, error) {
+func (db *DB) CreateConversation(ctx context.Context, slug *string, userInitiated bool, cwd *string, gitOrigin *string) (*generated.Conversation, error) {
 	conversationID, err := generateConversationID()
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate conversation ID: %w", err)
@@ -232,6 +232,7 @@ func (db *DB) CreateConversation(ctx context.Context, slug *string, userInitiate
 			Slug:           slug,
 			UserInitiated:  userInitiated,
 			Cwd:            cwd,
+			GitOrigin:      gitOrigin,
 		})
 		return err
 	})
@@ -321,6 +322,23 @@ func (db *DB) UpdateConversationCwd(ctx context.Context, conversationID, cwd str
 		q := generated.New(tx.Conn())
 		_, err := q.UpdateConversationCwd(ctx, generated.UpdateConversationCwdParams{
 			Cwd:            &cwd,
+			ConversationID: conversationID,
+		})
+		return err
+	})
+}
+
+// UpdateConversationCwdAndGitOrigin updates both the working directory and git origin for a conversation
+func (db *DB) UpdateConversationCwdAndGitOrigin(ctx context.Context, conversationID, cwd, gitOrigin string) error {
+	return db.pool.Tx(ctx, func(ctx context.Context, tx *Tx) error {
+		q := generated.New(tx.Conn())
+		var gitOriginPtr *string
+		if gitOrigin != "" {
+			gitOriginPtr = &gitOrigin
+		}
+		_, err := q.UpdateConversationCwdAndGitOrigin(ctx, generated.UpdateConversationCwdAndGitOriginParams{
+			Cwd:            &cwd,
+			GitOrigin:      gitOriginPtr,
 			ConversationID: conversationID,
 		})
 		return err

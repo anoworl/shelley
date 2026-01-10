@@ -282,8 +282,9 @@ func (cm *ConversationManager) ensureLoop(service llm.Service, modelID string) e
 	toolSetConfig.WorkingDir = cwd
 	toolSetConfig.ModelID = modelID
 	toolSetConfig.OnWorkingDirChange = func(newDir string) {
-		// Persist working directory change to database
-		if err := db.UpdateConversationCwd(context.Background(), conversationID, newDir); err != nil {
+		// Persist working directory and git origin change to database
+		gitOrigin := gitstate.GetGitOrigin(newDir)
+		if err := db.UpdateConversationCwdAndGitOrigin(context.Background(), conversationID, newDir, gitOrigin); err != nil {
 			logger.Error("failed to persist working directory change", "error", err, "newDir", newDir)
 		}
 	}
