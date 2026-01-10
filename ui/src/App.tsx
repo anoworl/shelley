@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import ChatInterface from "./components/ChatInterface";
 import ConversationDrawer from "./components/ConversationDrawer";
+import { useSwipeDrawer } from "./hooks/useSwipeDrawer";
 import { Conversation } from "./types";
 import { api } from "./services/api";
 
@@ -62,6 +63,13 @@ function App() {
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  // Enable swipe gestures to open/close drawer on mobile
+  useSwipeDrawer(
+    drawerOpen,
+    () => setDrawerOpen(true),
+    () => setDrawerOpen(false),
+  );
   const [error, setError] = useState<string | null>(null);
   const initialSlugResolved = useRef(false);
 
