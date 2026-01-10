@@ -1,7 +1,29 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { Conversation } from "../types";
 import { api } from "../services/api";
 import { getContextBarColor, formatTokens } from "../utils/context";
+
+// Extract repository name from git origin URL
+// e.g., "git@github.com:user/shelley.git" -> "shelley"
+// e.g., "https://github.com/user/shelley.git" -> "shelley"
+function extractRepoName(gitOrigin: string | null): string | null {
+  if (!gitOrigin) return null;
+  // Remove .git suffix if present
+  let url = gitOrigin.replace(/\.git$/, "");
+  // Handle SSH format: git@github.com:user/repo
+  if (url.includes(":") && url.includes("@")) {
+    const parts = url.split("/");
+    return parts[parts.length - 1] || null;
+  }
+  // Handle HTTPS format: https://github.com/user/repo
+  const parts = url.split("/");
+  return parts[parts.length - 1] || null;
+}
+
+interface GroupedConversations {
+  repoName: string | null;
+  conversations: Conversation[];
+}
 
 interface ConversationDrawerProps {
   isOpen: boolean;
@@ -33,6 +55,7 @@ function ConversationDrawer({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingSlug, setEditingSlug] = useState("");
   const renameInputRef = React.useRef<HTMLInputElement>(null);
+  const drawerBodyRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (showArchived && archivedConversations.length === 0) {
@@ -188,6 +211,243 @@ function ConversationDrawer({
 
   const displayedConversations = showArchived ? archivedConversations : conversations;
 
+  // Group conversations by repository name
+  const groupedConversations = useMemo((): GroupedConversations[] => {
+    const groups = new Map<string | null, Conversation[]>();
+    
+    for (const conv of displayedConversations) {
+      const repoName = extractRepoName(conv.git_origin);
+      const existing = groups.get(repoName) || [];
+      existing.push(conv);
+      groups.set(repoName, existing);
+    }
+    
+    // Convert to array and sort by most recent conversation in each group
+    const result: GroupedConversations[] = [];
+    for (const [key, convs] of groups.entries()) {
+      result.push({
+        repoName: key,
+        conversations: convs,
+      });
+    }
+    
+    // Sort groups by the most recent conversation (first conversation in each group)
+    // Conversations are already sorted by updated_at desc from the API
+    result.sort((a, b) => {
+      const aLatest = a.conversations[0]?.updated_at || '';
+      const bLatest = b.conversations[0]?.updated_at || '';
+      return bLatest.localeCompare(aLatest);
+    });
+    
+    return result;
+  }, [displayedConversations]);
+
+  // Scroll to top when the first group changes (most recent conversation updated)
+  const firstGroupName = groupedConversations[0]?.repoName;
+  useEffect(() => {
+    if (drawerBodyRef.current) {
+      drawerBodyRef.current.scrollTop = 0;
+    }
+  }, [firstGroupName]);
+
+  // Render a single conversation item
+  const renderConversationItem = (conversation: Conversation) => {
+    const isActive = conversation.conversation_id === currentConversationId;
+    return (
+      <div
+        key={conversation.conversation_id}
+        className={`conversation-item ${isActive ? "active" : ""}`}
+        onClick={() => {
+          if (!showArchived) {
+            onSelectConversation(conversation.conversation_id);
+          }
+        }}
+        style={{ cursor: showArchived ? "default" : "pointer" }}
+      >
+        <span
+          className={`agent-status-indicator ${conversation.agent_working ? "working" : conversation.agent_error ? "error" : "stopped"}`}
+          title={conversation.agent_working ? "Agent is working" : conversation.agent_error ? "Ended with error" : "Waiting for input"}
+        />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          {editingId === conversation.conversation_id ? (
+            <input
+              ref={renameInputRef}
+              type="text"
+              value={editingSlug}
+              onChange={(e) => setEditingSlug(e.target.value)}
+              onBlur={() => handleRename(conversation.conversation_id)}
+              onKeyDown={(e) => handleRenameKeyDown(e, conversation.conversation_id)}
+              onClick={(e) => e.stopPropagation()}
+              autoFocus
+              className="conversation-title"
+              style={{
+                width: "100%",
+                background: "transparent",
+                border: "none",
+                borderBottom: "1px solid var(--text-secondary)",
+                outline: "none",
+                padding: 0,
+                font: "inherit",
+                color: "inherit",
+              }}
+            />
+          ) : (
+            <div className="conversation-title">
+              {getConversationPreview(conversation)}
+            </div>
+          )}
+          <div className="conversation-meta">
+            <span className="conversation-date">
+              {formatDate(conversation.updated_at)}
+            </span>
+            {conversation.cwd && (
+              <span className="conversation-cwd" title={conversation.cwd}>
+                {formatCwdForDisplay(conversation.cwd)}
+              </span>
+            )}
+            {conversation.context_window_size > 0 && (() => {
+              const maxTokens = 200000;
+              const percentage = (conversation.context_window_size / maxTokens) * 100;
+              return (
+                <div
+                  className="conversation-context-bar"
+                  title={`${formatTokens(conversation.context_window_size)} tokens (${percentage.toFixed(0)}%)`}
+                >
+                  <div
+                    className="conversation-context-fill"
+                    style={{
+                      width: `${Math.min(percentage, 100)}%`,
+                      backgroundColor: getContextBarColor(percentage),
+                    }}
+                  />
+                </div>
+              );
+            })()}
+            {conversation.github_urls && (() => {
+              const urls: string[] = JSON.parse(conversation.github_urls);
+              if (urls.length === 0) return null;
+              const prCount = urls.filter(u => u.includes('/pull/')).length;
+              const issueCount = urls.filter(u => u.includes('/issues/')).length;
+              return (
+                <span className="conversation-github-links" title={urls.join('\n')}>
+                  {prCount > 0 && (
+                    <span className="github-link-badge pr">
+                      <svg viewBox="0 0 16 16" fill="currentColor" style={{ width: '0.75rem', height: '0.75rem' }}>
+                        <path d="M1.5 3.25a2.25 2.25 0 1 1 3 2.122v5.256a2.251 2.251 0 1 1-1.5 0V5.372A2.25 2.25 0 0 1 1.5 3.25Zm5.677-.177L9.573.677A.25.25 0 0 1 10 .854V2.5h1A2.5 2.5 0 0 1 13.5 5v5.628a2.251 2.251 0 1 1-1.5 0V5a1 1 0 0 0-1-1h-1v1.646a.25.25 0 0 1-.427.177L7.177 3.427a.25.25 0 0 1 0-.354ZM3.75 2.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5Zm0 9.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5Zm8.25.75a.75.75 0 1 0 1.5 0 .75.75 0 0 0-1.5 0Z"></path>
+                      </svg>
+                      {prCount}
+                    </span>
+                  )}
+                  {issueCount > 0 && (
+                    <span className="github-link-badge issue">
+                      <svg viewBox="0 0 16 16" fill="currentColor" style={{ width: '0.75rem', height: '0.75rem' }}>
+                        <path d="M8 9.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z"></path>
+                        <path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0ZM1.5 8a6.5 6.5 0 1 0 13 0 6.5 6.5 0 0 0-13 0Z"></path>
+                      </svg>
+                      {issueCount}
+                    </span>
+                  )}
+                </span>
+              );
+            })()}
+          </div>
+        </div>
+        <div
+          className="conversation-actions"
+          style={{ display: "flex", gap: "0.25rem", marginLeft: "0.5rem" }}
+        >
+          {showArchived ? (
+            <>
+              <button
+                onClick={(e) => handleUnarchive(e, conversation.conversation_id)}
+                className="btn-icon-sm"
+                title="Restore"
+                aria-label="Restore conversation"
+              >
+                <svg
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  style={{ width: "1rem", height: "1rem" }}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                  />
+                </svg>
+              </button>
+              <button
+                onClick={(e) => handleDelete(e, conversation.conversation_id)}
+                className="btn-icon-sm btn-danger"
+                title="Delete permanently"
+                aria-label="Delete conversation"
+              >
+                <svg
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  style={{ width: "1rem", height: "1rem" }}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                  />
+                </svg>
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                onClick={(e) => handleStartRename(e, conversation)}
+                className="btn-icon-sm"
+                title="Rename"
+                aria-label="Rename conversation"
+              >
+                <svg
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  style={{ width: "1rem", height: "1rem" }}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                  />
+                </svg>
+              </button>
+              <button
+                onClick={(e) => handleArchive(e, conversation.conversation_id)}
+                className="btn-icon-sm"
+                title="Archive"
+                aria-label="Archive conversation"
+              >
+                <svg
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  style={{ width: "1rem", height: "1rem" }}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"
+                  />
+                </svg>
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <>
       {/* Drawer */}
@@ -244,7 +504,7 @@ function ConversationDrawer({
         </div>
 
         {/* Conversations list */}
-        <div className="drawer-body scrollable">
+        <div className="drawer-body scrollable" ref={drawerBodyRef}>
           {loadingArchived && showArchived ? (
             <div style={{ padding: "1rem", textAlign: "center" }} className="text-secondary">
               <p>Loading...</p>
@@ -260,202 +520,14 @@ function ConversationDrawer({
             </div>
           ) : (
             <div className="conversation-list">
-              {displayedConversations.map((conversation) => {
-                const isActive = conversation.conversation_id === currentConversationId;
-                return (
-                  <div
-                    key={conversation.conversation_id}
-                    className={`conversation-item ${isActive ? "active" : ""}`}
-                    onClick={() => {
-                      if (!showArchived) {
-                        onSelectConversation(conversation.conversation_id);
-                      }
-                    }}
-                    style={{ cursor: showArchived ? "default" : "pointer" }}
-                  >
-                    <span
-                      className={`agent-status-indicator ${conversation.agent_working ? "working" : conversation.agent_error ? "error" : "stopped"}`}
-                      title={conversation.agent_working ? "Agent is working" : conversation.agent_error ? "Ended with error" : "Waiting for input"}
-                    />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      {editingId === conversation.conversation_id ? (
-                        <input
-                          ref={renameInputRef}
-                          type="text"
-                          value={editingSlug}
-                          onChange={(e) => setEditingSlug(e.target.value)}
-                          onBlur={() => handleRename(conversation.conversation_id)}
-                          onKeyDown={(e) => handleRenameKeyDown(e, conversation.conversation_id)}
-                          onClick={(e) => e.stopPropagation()}
-                          autoFocus
-                          className="conversation-title"
-                          style={{
-                            width: "100%",
-                            background: "transparent",
-                            border: "none",
-                            borderBottom: "1px solid var(--text-secondary)",
-                            outline: "none",
-                            padding: 0,
-                            font: "inherit",
-                            color: "inherit",
-                          }}
-                        />
-                      ) : (
-                        <div className="conversation-title">
-                          {getConversationPreview(conversation)}
-                        </div>
-                      )}
-                      <div className="conversation-meta">
-                        <span className="conversation-date">
-                          {formatDate(conversation.updated_at)}
-                        </span>
-                        {conversation.cwd && (
-                          <span className="conversation-cwd" title={conversation.cwd}>
-                            {formatCwdForDisplay(conversation.cwd)}
-                          </span>
-                        )}
-                        {conversation.context_window_size > 0 && (() => {
-                          const maxTokens = 200000;
-                          const percentage = (conversation.context_window_size / maxTokens) * 100;
-                          return (
-                            <div
-                              className="conversation-context-bar"
-                              title={`${formatTokens(conversation.context_window_size)} tokens (${percentage.toFixed(0)}%)`}
-                            >
-                              <div
-                                className="conversation-context-fill"
-                                style={{
-                                  width: `${Math.min(percentage, 100)}%`,
-                                  backgroundColor: getContextBarColor(percentage),
-                                }}
-                              />
-                            </div>
-                          );
-                        })()}
-                        {conversation.github_urls && (() => {
-                          const urls: string[] = JSON.parse(conversation.github_urls);
-                          if (urls.length === 0) return null;
-                          const prCount = urls.filter(u => u.includes('/pull/')).length;
-                          const issueCount = urls.filter(u => u.includes('/issues/')).length;
-                          return (
-                            <span className="conversation-github-links" title={urls.join('\n')}>
-                              {prCount > 0 && (
-                                <span className="github-link-badge pr">
-                                  <svg viewBox="0 0 16 16" fill="currentColor" style={{ width: '0.75rem', height: '0.75rem' }}>
-                                    <path d="M1.5 3.25a2.25 2.25 0 1 1 3 2.122v5.256a2.251 2.251 0 1 1-1.5 0V5.372A2.25 2.25 0 0 1 1.5 3.25Zm5.677-.177L9.573.677A.25.25 0 0 1 10 .854V2.5h1A2.5 2.5 0 0 1 13.5 5v5.628a2.251 2.251 0 1 1-1.5 0V5a1 1 0 0 0-1-1h-1v1.646a.25.25 0 0 1-.427.177L7.177 3.427a.25.25 0 0 1 0-.354ZM3.75 2.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5Zm0 9.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5Zm8.25.75a.75.75 0 1 0 1.5 0 .75.75 0 0 0-1.5 0Z"></path>
-                                  </svg>
-                                  {prCount}
-                                </span>
-                              )}
-                              {issueCount > 0 && (
-                                <span className="github-link-badge issue">
-                                  <svg viewBox="0 0 16 16" fill="currentColor" style={{ width: '0.75rem', height: '0.75rem' }}>
-                                    <path d="M8 9.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z"></path>
-                                    <path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0ZM1.5 8a6.5 6.5 0 1 0 13 0 6.5 6.5 0 0 0-13 0Z"></path>
-                                  </svg>
-                                  {issueCount}
-                                </span>
-                              )}
-                            </span>
-                          );
-                        })()}
-                      </div>
-                    </div>
-                    <div
-                      className="conversation-actions"
-                      style={{ display: "flex", gap: "0.25rem", marginLeft: "0.5rem" }}
-                    >
-                      {showArchived ? (
-                        <>
-                          <button
-                            onClick={(e) => handleUnarchive(e, conversation.conversation_id)}
-                            className="btn-icon-sm"
-                            title="Restore"
-                            aria-label="Restore conversation"
-                          >
-                            <svg
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                              style={{ width: "1rem", height: "1rem" }}
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                              />
-                            </svg>
-                          </button>
-                          <button
-                            onClick={(e) => handleDelete(e, conversation.conversation_id)}
-                            className="btn-icon-sm btn-danger"
-                            title="Delete permanently"
-                            aria-label="Delete conversation"
-                          >
-                            <svg
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                              style={{ width: "1rem", height: "1rem" }}
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                              />
-                            </svg>
-                          </button>
-                        </>
-                      ) : (
-                        <>
-                          <button
-                            onClick={(e) => handleStartRename(e, conversation)}
-                            className="btn-icon-sm"
-                            title="Rename"
-                            aria-label="Rename conversation"
-                          >
-                            <svg
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                              style={{ width: "1rem", height: "1rem" }}
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                              />
-                            </svg>
-                          </button>
-                          <button
-                            onClick={(e) => handleArchive(e, conversation.conversation_id)}
-                            className="btn-icon-sm"
-                            title="Archive"
-                            aria-label="Archive conversation"
-                          >
-                            <svg
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                              style={{ width: "1rem", height: "1rem" }}
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"
-                              />
-                            </svg>
-                          </button>
-                        </>
-                      )}
-                    </div>
+              {groupedConversations.map((group) => (
+                <div key={group.repoName || "__no_repo__"} className="conversation-group">
+                  <div className="conversation-group-header">
+                    {group.repoName || "other"}
                   </div>
-                );
-              })}
+                  {group.conversations.map(renderConversationItem)}
+                </div>
+              ))}
             </div>
           )}
         </div>

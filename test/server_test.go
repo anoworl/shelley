@@ -72,7 +72,7 @@ func TestServerEndToEnd(t *testing.T) {
 		// Create a conversation
 		// Using database directly instead of service
 		slug := "test-conversation"
-		conv, err := database.CreateConversation(context.Background(), &slug, true, nil)
+		conv, err := database.CreateConversation(context.Background(), &slug, true, nil, nil)
 		if err != nil {
 			t.Fatalf("Failed to create conversation: %v", err)
 		}
@@ -106,7 +106,7 @@ func TestServerEndToEnd(t *testing.T) {
 		// Create a conversation
 		// Using database directly instead of service
 		slug := "chat-test"
-		conv, err := database.CreateConversation(context.Background(), &slug, true, nil)
+		conv, err := database.CreateConversation(context.Background(), &slug, true, nil, nil)
 		if err != nil {
 			t.Fatalf("Failed to create conversation: %v", err)
 		}
@@ -169,7 +169,7 @@ func TestServerEndToEnd(t *testing.T) {
 		// Using database directly instead of service
 		// Using database directly instead of service
 		slug := "stream-test"
-		conv, err := database.CreateConversation(context.Background(), &slug, true, nil)
+		conv, err := database.CreateConversation(context.Background(), &slug, true, nil, nil)
 		if err != nil {
 			t.Fatalf("Failed to create conversation: %v", err)
 		}
@@ -225,7 +225,7 @@ func TestServerEndToEnd(t *testing.T) {
 		ctx := context.Background()
 
 		// Create a conversation without a slug
-		conv, err := database.CreateConversation(ctx, nil, true, nil)
+		conv, err := database.CreateConversation(ctx, nil, true, nil, nil)
 		if err != nil {
 			t.Fatalf("Failed to create conversation: %v", err)
 		}
@@ -389,7 +389,7 @@ func TestConversationCleanup(t *testing.T) {
 
 	// Create a conversation
 	// Using database directly instead of service
-	conv, err := database.CreateConversation(context.Background(), nil, true, nil)
+	conv, err := database.CreateConversation(context.Background(), nil, true, nil, nil)
 	if err != nil {
 		t.Fatalf("Failed to create conversation: %v", err)
 	}
@@ -557,7 +557,7 @@ func TestSlugEndToEnd(t *testing.T) {
 	// Create a conversation with a specific slug
 	ctx := context.Background()
 	testSlug := "test-conversation-slug"
-	conv, err := database.CreateConversation(ctx, &testSlug, true, nil)
+	conv, err := database.CreateConversation(ctx, &testSlug, true, nil, nil)
 	if err != nil {
 		t.Fatalf("Failed to create conversation: %v", err)
 	}
@@ -619,7 +619,7 @@ func TestSSEIncrementalUpdates(t *testing.T) {
 
 	// Create a conversation with initial message
 	slug := "test-sse"
-	conv, err := database.CreateConversation(context.Background(), &slug, true, nil)
+	conv, err := database.CreateConversation(context.Background(), &slug, true, nil, nil)
 	if err != nil {
 		t.Fatalf("Failed to create conversation: %v", err)
 	}
