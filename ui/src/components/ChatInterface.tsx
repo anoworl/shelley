@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo, useCallback, useLayoutEffect } from "react";
+import { Virtualizer, VirtualizerHandle } from "virtua";
 import { Message, Conversation, StreamResponse, LLMContent } from "../types";
 import { api } from "../services/api";
 import { ThemeMode, getStoredTheme, setStoredTheme, applyTheme } from "../services/theme";
@@ -116,6 +117,21 @@ function ContextUsageBar({ contextWindowSize, maxContextTokens }: ContextUsageBa
       </div>
     </div>
   );
+}
+
+// Type for processed message items (messages or tool calls)
+interface CoalescedItem {
+  type: "message" | "tool";
+  message?: Message;
+  toolUseId?: string;
+  toolName?: string;
+  toolInput?: unknown;
+  toolResult?: LLMContent[];
+  toolError?: boolean;
+  toolStartTime?: string | null;
+  toolEndTime?: string | null;
+  hasResult?: boolean;
+  display?: unknown;
 }
 
 interface CoalescedToolCallProps {
@@ -450,12 +466,11 @@ function ChatInterface({
   const [isDisconnected, setIsDisconnected] = useState(false);
   const initialAssetHashRef = useRef<string | null>(null);
   const [showScrollToBottom, setShowScrollToBottom] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const virtualizerRef = useRef<VirtualizerHandle>(null);
+  const shouldStickToBottom = useRef(true);
   const eventSourceRef = useRef<EventSource | null>(null);
   const overflowMenuRef = useRef<HTMLDivElement>(null);
   const reconnectTimeoutRef = useRef<number | null>(null);
-  const userScrolledRef = useRef(false);
 
   // Load messages and set up streaming
   useEffect(() => {
@@ -480,28 +495,7 @@ function ChatInterface({
     };
   }, [conversationId]);
 
-  // Check scroll position and handle scroll-to-bottom button
-  useEffect(() => {
-    const container = messagesContainerRef.current;
-    if (!container) return;
-
-    const handleScroll = () => {
-      const { scrollTop, scrollHeight, clientHeight } = container;
-      const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
-      setShowScrollToBottom(!isNearBottom);
-      userScrolledRef.current = !isNearBottom;
-    };
-
-    container.addEventListener("scroll", handleScroll);
-    return () => container.removeEventListener("scroll", handleScroll);
-  }, []);
-
-  // Auto-scroll to bottom when new messages arrive (only if user is already at bottom)
-  useEffect(() => {
-    if (!userScrolledRef.current) {
-      scrollToBottom();
-    }
-  }, [messages]);
+  // Scroll handling is now done by Virtualizer's onScroll callback
 
   // Close overflow menu when clicking outside
   useEffect(() => {
@@ -681,11 +675,7 @@ function ChatInterface({
     }
   };
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "instant" });
-    userScrolledRef.current = false;
-    setShowScrollToBottom(false);
-  };
+  // scrollToBottom is defined after coalescedItems
 
   const handleManualReconnect = () => {
     setIsDisconnected(false);
@@ -716,27 +706,13 @@ function ChatInterface({
     return currentConversation?.slug || "Shelley";
   };
 
-  // Process messages to coalesce tool calls
-  const processMessages = () => {
+  // Process messages to coalesce tool calls (memoized for Virtualizer)
+  const coalescedItems = useMemo(() => {
     if (messages.length === 0) {
       return [];
     }
 
-    interface CoalescedItem {
-      type: "message" | "tool";
-      message?: Message;
-      toolUseId?: string;
-      toolName?: string;
-      toolInput?: unknown;
-      toolResult?: LLMContent[];
-      toolError?: boolean;
-      toolStartTime?: string | null;
-      toolEndTime?: string | null;
-      hasResult?: boolean;
-      display?: unknown;
-    }
-
-    const coalescedItems: CoalescedItem[] = [];
+    const items: CoalescedItem[] = [];
     const toolResultMap: Record<
       string,
       {
@@ -812,7 +788,7 @@ function ChatInterface({
       }
 
       if (message.type === "error") {
-        coalescedItems.push({ type: "message", message });
+        items.push({ type: "message", message });
         return;
       }
 
@@ -832,7 +808,7 @@ function ChatInterface({
 
       // If it's a user message without tool results, show it
       if (message.type === "user" && !hasToolResult) {
-        coalescedItems.push({ type: "message", message });
+        items.push({ type: "message", message });
         return;
       }
 
@@ -866,7 +842,7 @@ function ChatInterface({
               .join("")
               .trim();
             if (textString) {
-              coalescedItems.push({ type: "message", message });
+              items.push({ type: "message", message });
             }
 
             // Add tool uses as separate items
@@ -874,7 +850,7 @@ function ChatInterface({
               const resultData = toolUse.ID ? toolResultMap[toolUse.ID] : undefined;
               const completedViaDisplay = toolUse.ID ? displayResultSet.has(toolUse.ID) : false;
               const displayData = toolUse.ID ? displayDataMap[toolUse.ID] : undefined;
-              coalescedItems.push({
+              items.push({
                 type: "tool",
                 toolUseId: toolUse.ID,
                 toolName: toolUse.ToolName,
@@ -890,60 +866,39 @@ function ChatInterface({
           }
         } catch (err) {
           console.error("Failed to parse message LLM data:", err);
-          coalescedItems.push({ type: "message", message });
+          items.push({ type: "message", message });
         }
       } else {
-        coalescedItems.push({ type: "message", message });
+        items.push({ type: "message", message });
       }
     });
 
-    return coalescedItems;
-  };
+    return items;
+  }, [messages]);
 
-  const renderMessages = () => {
-    if (messages.length === 0) {
-      const proxyURL = `https://${hostname}/`;
-      return (
-        <div className="empty-state">
-          <div className="empty-state-content">
-            <p className="text-base" style={{ marginBottom: "1rem", lineHeight: "1.6" }}>
-              Shelley is an agent, running on <strong>{hostname}</strong>. You can ask Shelley to do
-              stuff. If you build a web site with Shelley, you can use exe.dev&apos;s proxy features
-              (see{" "}
-              <a
-                href="https://exe.dev/docs/proxy"
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ color: "var(--blue-text)", textDecoration: "underline" }}
-              >
-                docs
-              </a>
-              ) to visit it over the web at{" "}
-              <a
-                href={proxyURL}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ color: "var(--blue-text)", textDecoration: "underline" }}
-              >
-                {proxyURL}
-              </a>
-              .
-            </p>
-            <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
-              Send a message to start the conversation.
-            </p>
-          </div>
-        </div>
-      );
+  // Scroll to bottom - must be after coalescedItems is defined
+  const scrollToBottom = useCallback(() => {
+    if (virtualizerRef.current && coalescedItems.length > 0) {
+      shouldStickToBottom.current = true;
+      virtualizerRef.current.scrollToIndex(coalescedItems.length - 1, { align: "end" });
     }
+    setShowScrollToBottom(false);
+  }, [coalescedItems.length]);
 
-    const coalescedItems = processMessages();
+  // Auto-scroll to bottom when messages change (if user is at bottom)
+  useLayoutEffect(() => {
+    if (!virtualizerRef.current || coalescedItems.length === 0) return;
+    if (shouldStickToBottom.current) {
+      virtualizerRef.current.scrollToIndex(coalescedItems.length - 1, { align: "end" });
+    }
+  }, [coalescedItems]);
 
-    const rendered = coalescedItems.map((item, index) => {
+  // Render a single item for Virtualizer
+  const renderItem = useCallback(
+    (index: number, item: CoalescedItem) => {
       if (item.type === "message" && item.message) {
         return (
           <MessageComponent
-            key={item.message.message_id}
             message={item.message}
             onOpenDiffViewer={(commit) => {
               setDiffViewerInitialCommit(commit);
@@ -954,7 +909,6 @@ function ChatInterface({
       } else if (item.type === "tool") {
         return (
           <CoalescedToolCall
-            key={item.toolUseId || `tool-${index}`}
             toolName={item.toolName || "Unknown Tool"}
             toolInput={item.toolInput}
             toolResult={item.toolResult}
@@ -967,10 +921,24 @@ function ChatInterface({
         );
       }
       return null;
-    });
+    },
+    []
+  );
 
-    return rendered;
-  };
+  // Compute item key for Virtualizer
+  const computeItemKey = useCallback(
+    (index: number, item: CoalescedItem) => {
+      if (item.type === "message" && item.message) {
+        return item.message.message_id;
+      } else if (item.type === "tool" && item.toolUseId) {
+        return item.toolUseId;
+      }
+      return `item-${index}`;
+    },
+    []
+  );
+
+
 
   return (
     <div className="full-height flex flex-col">
@@ -1191,19 +1159,39 @@ function ChatInterface({
       {/* Messages area */}
       {/* Messages area with scroll-to-bottom button wrapper */}
       <div className="messages-area-wrapper">
-        <div className="messages-container scrollable" ref={messagesContainerRef}>
-          {loading ? (
-            <div className="flex items-center justify-center full-height">
-              <div className="spinner"></div>
-            </div>
-          ) : (
-            <div className="messages-list">
-              {renderMessages()}
-
-              <div ref={messagesEndRef} />
-            </div>
-          )}
-        </div>
+        {loading ? (
+          <div className="messages-container flex items-center justify-center full-height">
+            <div className="spinner"></div>
+          </div>
+        ) : (
+          <div
+            className="messages-container"
+            style={{
+              overflowY: "auto",
+              overflowAnchor: "none",
+              display: "flex",
+              flexDirection: "column",
+            }}
+          >
+            <div style={{ flexGrow: 1 }} />
+            <Virtualizer
+              ref={virtualizerRef}
+              onScroll={(offset) => {
+                if (!virtualizerRef.current) return;
+                const atBottom =
+                  offset - virtualizerRef.current.scrollSize + virtualizerRef.current.viewportSize >= -1.5;
+                shouldStickToBottom.current = atBottom;
+                setShowScrollToBottom(!atBottom);
+              }}
+            >
+              {coalescedItems.map((item, index) => (
+                <div key={computeItemKey(index, item)}>
+                  {renderItem(index, item)}
+                </div>
+              ))}
+            </Virtualizer>
+          </div>
+        )}
 
         {/* Scroll to bottom button - outside scrollable area */}
         {showScrollToBottom && (

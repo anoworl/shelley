@@ -25,6 +25,7 @@ function ConversationDrawer({
   onConversationUnarchived,
   onConversationRenamed,
 }: ConversationDrawerProps) {
+  const hostname = window.__SHELLEY_INIT__?.hostname || "localhost";
   const [showArchived, setShowArchived] = useState(false);
   const [archivedConversations, setArchivedConversations] = useState<Conversation[]>([]);
   const [loadingArchived, setLoadingArchived] = useState(false);
@@ -192,7 +193,20 @@ function ConversationDrawer({
       <div className={`drawer ${isOpen ? "open" : ""}`}>
         {/* Header */}
         <div className="drawer-header">
-          <h2 className="drawer-title">{showArchived ? "Archived" : "Conversations"}</h2>
+          <div className="drawer-title-row">
+            {!showArchived && (
+              <a
+                href={`https://${hostname}/`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="drawer-hostname"
+                title={`Open https://${hostname}/`}
+              >
+                {hostname.split('.')[0]}
+              </a>
+            )}
+            <h2 className="drawer-title">{showArchived ? "Archived" : "Conversations"}</h2>
+          </div>
           <div className="drawer-header-actions">
             {/* New conversation button - mobile only */}
             {!showArchived && (
