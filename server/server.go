@@ -622,6 +622,19 @@ func (s *Server) recordMessage(ctx context.Context, conversationID string, messa
 		go s.broadcastConversationUpdate(context.WithoutCancel(ctx), conversationID)
 	}
 
+	// Extract and store GitHub URLs from message
+	go func() {
+		convo, err := s.db.GetConversationByID(context.WithoutCancel(ctx), conversationID)
+		if err != nil {
+			return
+		}
+		cwd := ""
+		if convo.Cwd != nil {
+			cwd = *convo.Cwd
+		}
+		s.updateGitHubURLs(context.WithoutCancel(ctx), conversationID, cwd, message)
+	}()
+
 	return nil
 }
 

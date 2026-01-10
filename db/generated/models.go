@@ -19,6 +19,7 @@ type Conversation struct {
 	AgentWorking      bool      `json:"agent_working"`
 	ContextWindowSize int64     `json:"context_window_size"`
 	AgentError        bool      `json:"agent_error"`
+	GithubUrls        *string   `json:"github_urls"`
 }
 
 type Message struct {

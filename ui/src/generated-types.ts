@@ -14,6 +14,7 @@ export interface Conversation {
 	agent_working: boolean;
 	context_window_size: number;
 	agent_error: boolean;
+	github_urls: string | null;
 }
 
 export interface Usage {
