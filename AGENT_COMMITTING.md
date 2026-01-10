@@ -185,6 +185,21 @@ Check for:
 - Leftover debug code
 - Sensitive information (API keys, etc.)
 
+## Responding to PR Review Comments
+
+When automated reviewers (e.g., Claude Code Review bot) leave comments:
+
+1. **Investigate the issue** - Understand the actual impact
+2. **Check for practical UX impact** - If there's no real user-facing problem, don't add complexity
+3. **Reply in the thread** - Use `gh api` to reply directly to the comment thread:
+   ```bash
+   gh api repos/anoworl/shelley/pulls/{pr}/comments/{comment_id}/replies \
+     -X POST -f body="Your response — by Shelley 🤖"
+   ```
+4. **Sign responses** - End with `— by Shelley 🤖` to indicate agent-generated reply
+
+Refer to AGENT.md #17: Prioritize code cleanliness over theoretical fixes with no practical impact.
+
 ## Merge Strategy
 
 **Use regular merge only. Do not use Squash or Rebase.**
