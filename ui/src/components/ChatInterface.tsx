@@ -447,6 +447,7 @@ function ChatInterface({
   );
   const [diffCommentText, setDiffCommentText] = useState("");
   const [agentWorking, setAgentWorking] = useState(false);
+  const [mobileInputVisible, setMobileInputVisible] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [contextWindowSize, setContextWindowSize] = useState(0);
   const terminalURL = window.__SHELLEY_INIT__?.terminal_url || null;
@@ -1315,8 +1316,15 @@ function ChatInterface({
             </div>
           ) : (
             // Active conversation - show Ready + context bar
-            <div className="status-bar-active">
-              <span className="status-message status-ready">Ready on {hostname}</span>
+            <div
+              className="status-bar-active status-bar-clickable"
+              onClick={() => setMobileInputVisible(true)}
+              role="button"
+              tabIndex={0}
+            >
+              <span className="status-message status-ready">
+                Ready on {window.matchMedia('(max-width: 768px)').matches ? hostname.split('.')[0] : hostname}
+              </span>
               <ContextUsageBar
                 contextWindowSize={contextWindowSize}
                 maxContextTokens={
@@ -1328,16 +1336,23 @@ function ChatInterface({
         </div>
       </div>
 
-      {/* Message input */}
-      {/* Message input */}
+      {/* Message input - hidden on mobile until status bar is tapped */}
       <MessageInput
         key={conversationId || "new"}
-        onSend={sendMessage}
+        onSend={async (msg) => {
+          await sendMessage(msg);
+          // Hide input on mobile after sending
+          if (window.matchMedia("(max-width: 768px)").matches) {
+            setMobileInputVisible(false);
+          }
+        }}
         disabled={sending || loading}
-        autoFocus={true}
+        autoFocus={mobileInputVisible}
         injectedText={diffCommentText}
         onClearInjectedText={() => setDiffCommentText("")}
         persistKey={conversationId || "new-conversation"}
+        mobileVisible={mobileInputVisible}
+        onMobileBlur={() => setMobileInputVisible(false)}
       />
 
       {/* Directory Picker Modal */}
