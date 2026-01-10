@@ -13,6 +13,7 @@ export interface Conversation {
 	archived: boolean;
 	agent_working: boolean;
 	context_window_size: number;
+	agent_error: boolean;
 }
 
 export interface Usage {

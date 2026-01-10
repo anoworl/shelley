@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Conversation } from "../types";
 import { api } from "../services/api";
+import { getContextBarColor, formatTokens } from "../utils/context";
 
 interface ConversationDrawerProps {
   isOpen: boolean;
@@ -273,8 +274,8 @@ function ConversationDrawer({
                     style={{ cursor: showArchived ? "default" : "pointer" }}
                   >
                     <span
-                      className={`agent-status-indicator ${conversation.agent_working ? "working" : "stopped"}`}
-                      title={conversation.agent_working ? "Agent is working" : "Waiting for input"}
+                      className={`agent-status-indicator ${conversation.agent_working ? "working" : conversation.agent_error ? "error" : "stopped"}`}
+                      title={conversation.agent_working ? "Agent is working" : conversation.agent_error ? "Ended with error" : "Waiting for input"}
                     />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       {editingId === conversation.conversation_id ? (
@@ -313,19 +314,24 @@ function ConversationDrawer({
                             {formatCwdForDisplay(conversation.cwd)}
                           </span>
                         )}
-                        {conversation.context_window_size > 0 && (
-                          <div
-                            className="conversation-context-bar"
-                            title={`${Math.round(conversation.context_window_size / 1000)}k tokens`}
-                          >
+                        {conversation.context_window_size > 0 && (() => {
+                          const maxTokens = 200000;
+                          const percentage = (conversation.context_window_size / maxTokens) * 100;
+                          return (
                             <div
-                              className="conversation-context-fill"
-                              style={{
-                                width: `${Math.min((conversation.context_window_size / 200000) * 100, 100)}%`,
-                              }}
-                            />
-                          </div>
-                        )}
+                              className="conversation-context-bar"
+                              title={`${formatTokens(conversation.context_window_size)} tokens (${percentage.toFixed(0)}%)`}
+                            >
+                              <div
+                                className="conversation-context-fill"
+                                style={{
+                                  width: `${Math.min(percentage, 100)}%`,
+                                  backgroundColor: getContextBarColor(percentage),
+                                }}
+                              />
+                            </div>
+                          );
+                        })()}
                       </div>
                     </div>
                     <div

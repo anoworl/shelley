@@ -578,6 +578,10 @@ button {
   background-color: var(--warning-color, #eab308);
 }
 
+.agent-status-indicator.error {
+  background-color: var(--error-text, #ef4444);
+}
+
 @keyframes pulse {
   0%, 100% {
     opacity: 1;
@@ -622,12 +626,13 @@ button {
   border-radius: 0.125rem;
   overflow: hidden;
   flex-shrink: 0;
+  margin-left: auto;
 }
 
 .conversation-context-fill {
   height: 100%;
-  background-color: var(--blue-text);
   border-radius: 0.125rem;
+  /* color set via inline style based on percentage */
 }
 
 .conversation-item.active .conversation-context-bar {

@@ -581,6 +581,14 @@ func (s *Server) recordMessage(ctx context.Context, conversationID string, messa
 			}); err != nil {
 				return err
 			}
+			// Update agent_error status
+			agentError := messageType == db.MessageTypeError
+			if err := q.UpdateConversationAgentError(ctx, generated.UpdateConversationAgentErrorParams{
+				AgentError:     agentError,
+				ConversationID: conversationID,
+			}); err != nil {
+				return err
+			}
 		}
 		// Update context window size if usage data is present
 		if contextSize := calculateContextWindowSizeFromMsg(createdMsg); contextSize > 0 {

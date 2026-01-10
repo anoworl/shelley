@@ -83,3 +83,8 @@ WHERE conversation_id = ?;
 UPDATE conversations
 SET context_window_size = ?, updated_at = CURRENT_TIMESTAMP
 WHERE conversation_id = ?;
+
+-- name: UpdateConversationAgentError :exec
+UPDATE conversations
+SET agent_error = ?, updated_at = CURRENT_TIMESTAMP
+WHERE conversation_id = ?;

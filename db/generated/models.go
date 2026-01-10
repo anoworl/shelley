@@ -18,6 +18,7 @@ type Conversation struct {
 	Archived          bool      `json:"archived"`
 	AgentWorking      bool      `json:"agent_working"`
 	ContextWindowSize int64     `json:"context_window_size"`
+	AgentError        bool      `json:"agent_error"`
 }
 
 type Message struct {
