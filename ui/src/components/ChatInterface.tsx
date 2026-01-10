@@ -1319,6 +1319,12 @@ function ChatInterface({
             <div
               className="status-bar-active status-bar-clickable"
               onClick={() => setMobileInputVisible(true)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  setMobileInputVisible(true);
+                }
+              }}
               role="button"
               tabIndex={0}
             >
@@ -1353,6 +1359,7 @@ function ChatInterface({
         persistKey={conversationId || "new-conversation"}
         mobileVisible={mobileInputVisible}
         onMobileBlur={() => setMobileInputVisible(false)}
+        isNewConversation={!conversationId}
       />
 
       {/* Directory Picker Modal */}
