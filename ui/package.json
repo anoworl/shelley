@@ -2,7 +2,7 @@
   "name": "shelley-ui",
   "version": "1.0.0",
   "type": "module",
-  "packageManager": "npm@11.6.2",
+  "packageManager": "pnpm@10.28.0",
   "scripts": {
     "dev": "esbuild src/main.tsx --bundle --outfile=dist/main.js --servedir=dist --watch",
     "build": "node scripts/build.js",
@@ -41,5 +41,10 @@
     "tsx": "^4.21.0",
     "typescript": "^5.0.0",
     "typescript-eslint": "^8.43.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
   }
 }

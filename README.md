@@ -29,7 +29,7 @@ bring your own.
 Connect via SSH (or terminal), then:
 
 ```bash
-# Install Node.js and npm first if not already installed
+# Install Node.js first if not already installed (pnpm is managed via corepack)
 git clone https://github.com/anoworl/shelley.git ~/shelley
 cd ~/shelley
 make deploy
