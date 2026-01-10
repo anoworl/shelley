@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { Conversation } from "../types";
 import { api } from "../services/api";
 import { getContextBarColor, formatTokens } from "../utils/context";
@@ -55,6 +55,7 @@ function ConversationDrawer({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingSlug, setEditingSlug] = useState("");
   const renameInputRef = React.useRef<HTMLInputElement>(null);
+  const drawerBodyRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (showArchived && archivedConversations.length === 0) {
@@ -221,21 +222,22 @@ function ConversationDrawer({
       groups.set(repoName, existing);
     }
     
-    // Convert to array and sort: named repos first (alphabetically), then null
+    // Convert to array and sort by most recent conversation in each group
     const result: GroupedConversations[] = [];
-    const sortedKeys = Array.from(groups.keys()).sort((a, b) => {
-      if (a === null && b === null) return 0;
-      if (a === null) return 1;
-      if (b === null) return -1;
-      return a.localeCompare(b);
-    });
-    
-    for (const key of sortedKeys) {
+    for (const [key, convs] of groups.entries()) {
       result.push({
         repoName: key,
-        conversations: groups.get(key) || [],
+        conversations: convs,
       });
     }
+    
+    // Sort groups by the most recent conversation (first conversation in each group)
+    // Conversations are already sorted by updated_at desc from the API
+    result.sort((a, b) => {
+      const aLatest = a.conversations[0]?.updated_at || '';
+      const bLatest = b.conversations[0]?.updated_at || '';
+      return bLatest.localeCompare(aLatest);
+    });
     
     return result;
   }, [displayedConversations]);
@@ -494,7 +496,7 @@ function ConversationDrawer({
         </div>
 
         {/* Conversations list */}
-        <div className="drawer-body scrollable">
+        <div className="drawer-body scrollable" ref={drawerBodyRef}>
           {loadingArchived && showArchived ? (
             <div style={{ padding: "1rem", textAlign: "center" }} className="text-secondary">
               <p>Loading...</p>
@@ -512,11 +514,9 @@ function ConversationDrawer({
             <div className="conversation-list">
               {groupedConversations.map((group) => (
                 <div key={group.repoName || "__no_repo__"} className="conversation-group">
-                  {group.repoName && (
-                    <div className="conversation-group-header">
-                      {group.repoName}
-                    </div>
-                  )}
+                  <div className="conversation-group-header">
+                    {group.repoName || "other"}
+                  </div>
                   {group.conversations.map(renderConversationItem)}
                 </div>
               ))}
