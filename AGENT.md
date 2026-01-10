@@ -31,3 +31,4 @@
 14. All documentation must be written in English.
 15. Before committing, read [AGENT_COMMITTING.md](./AGENT_COMMITTING.md) for commit message format, branch naming, and PR guidelines.
 16. Before running tests, read [AGENT_TESTING.md](./AGENT_TESTING.md) for testing conventions.
+17. Prioritize code cleanliness over fixing issues that have no practical UX impact. Do not add complexity for theoretical correctness.

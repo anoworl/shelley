@@ -23,6 +23,7 @@ import (
 	"shelley.exe.dev/db/generated"
 	"shelley.exe.dev/llm"
 	"shelley.exe.dev/models"
+	"shelley.exe.dev/subpub"
 	"shelley.exe.dev/ui"
 )
 
@@ -189,6 +190,25 @@ func agentWorking(messages []APIMessage) bool {
 	return true
 }
 
+// shouldUpdateAgentWorking returns true if the message type affects the agent_working state.
+func shouldUpdateAgentWorking(msgType db.MessageType) bool {
+	switch msgType {
+	case db.MessageTypeUser, db.MessageTypeAgent, db.MessageTypeError, db.MessageTypeGitInfo:
+		return true
+	default:
+		return false
+	}
+}
+
+// calculateAgentWorking determines if agent is working based on message type.
+// User messages start the agent working; agent/error/gitinfo messages may end it.
+func calculateAgentWorking(msgType db.MessageType, msg *generated.Message) bool {
+	if msgType == db.MessageTypeUser {
+		return true // User sent a message, agent will start working
+	}
+	return !isEndOfTurn(msg)
+}
+
 // isEndOfTurn checks if a database message represents end of turn
 func isEndOfTurn(msg *generated.Message) bool {
 	if msg == nil {
@@ -245,6 +265,8 @@ type Server struct {
 	requireHeader       string
 	conversationGroup   singleflight.Group[string, *ConversationManager]
 	assetHash           string
+	metaSubPub          *subpub.SubPub[generated.Conversation] // broadcasts conversation metadata changes
+	metaSeq             int64                                  // sequence number for metaSubPub
 }
 
 // NewServer creates a new server instance
@@ -260,6 +282,7 @@ func NewServer(database *db.DB, llmManager LLMProvider, toolSetConfig claudetool
 		defaultModel:        defaultModel,
 		requireHeader:       requireHeader,
 		links:               links,
+		metaSubPub:          subpub.New[generated.Conversation](),
 	}
 }
 
@@ -273,6 +296,7 @@ func (s *Server) RegisterRoutes(mux *http.ServeMux) {
 	// API routes - wrap with gzip where beneficial
 	mux.Handle("/api/conversations", gzipHandler(http.HandlerFunc(s.handleConversations)))
 	mux.Handle("/api/conversations/archived", gzipHandler(http.HandlerFunc(s.handleArchivedConversations)))
+	mux.Handle("/api/conversations/stream", http.HandlerFunc(s.handleConversationsStream)) // SSE, no gzip
 	mux.Handle("/api/conversations/new", http.HandlerFunc(s.handleNewConversation)) // Small response
 	mux.Handle("/api/conversation/", http.StripPrefix("/api/conversation", s.conversationMux()))
 	mux.Handle("/api/conversation-by-slug/", gzipHandler(http.HandlerFunc(s.handleConversationBySlug)))
@@ -543,11 +567,41 @@ func (s *Server) recordMessage(ctx context.Context, conversationID string, messa
 		return fmt.Errorf("failed to create message: %w", err)
 	}
 
-	// Update conversation's last updated timestamp for correct ordering
+	// Update conversation timestamp, agent_working status, and context window size
 	if err := s.db.QueriesTx(ctx, func(q *generated.Queries) error {
-		return q.UpdateConversationTimestamp(ctx, conversationID)
+		if err := q.UpdateConversationTimestamp(ctx, conversationID); err != nil {
+			return err
+		}
+		// Only update agent_working for message types that affect it
+		if shouldUpdateAgentWorking(messageType) {
+			agentWorking := calculateAgentWorking(messageType, createdMsg)
+			if err := q.UpdateConversationAgentWorking(ctx, generated.UpdateConversationAgentWorkingParams{
+				AgentWorking:   agentWorking,
+				ConversationID: conversationID,
+			}); err != nil {
+				return err
+			}
+			// Update agent_error status
+			agentError := messageType == db.MessageTypeError
+			if err := q.UpdateConversationAgentError(ctx, generated.UpdateConversationAgentErrorParams{
+				AgentError:     agentError,
+				ConversationID: conversationID,
+			}); err != nil {
+				return err
+			}
+		}
+		// Update context window size if usage data is present
+		if contextSize := calculateContextWindowSizeFromMsg(createdMsg); contextSize > 0 {
+			if err := q.UpdateConversationContextWindowSize(ctx, generated.UpdateConversationContextWindowSizeParams{
+				ContextWindowSize: int64(contextSize),
+				ConversationID:    conversationID,
+			}); err != nil {
+				return err
+			}
+		}
+		return nil
 	}); err != nil {
-		s.logger.Warn("Failed to update conversation timestamp", "conversationID", conversationID, "error", err)
+		s.logger.Warn("Failed to update conversation", "conversationID", conversationID, "error", err)
 	}
 
 	// Touch active manager activity time if present
@@ -562,6 +616,11 @@ func (s *Server) recordMessage(ctx context.Context, conversationID string, messa
 	// the HTTP request context may be cancelled after the handler returns, but
 	// we still want the notification to complete so SSE clients see the message immediately
 	go s.notifySubscribersNewMessage(context.WithoutCancel(ctx), conversationID, createdMsg)
+
+	// Broadcast conversation metadata change to all clients
+	if shouldUpdateAgentWorking(messageType) || calculateContextWindowSizeFromMsg(createdMsg) > 0 {
+		go s.broadcastConversationUpdate(context.WithoutCancel(ctx), conversationID)
+	}
 
 	return nil
 }
@@ -691,6 +750,27 @@ func (s *Server) notifySubscribersNewMessage(ctx context.Context, conversationID
 		ContextWindowSize: calculateContextWindowSizeFromMsg(newMsg),
 	}
 	manager.subpub.Publish(newMsg.SequenceID, streamData)
+}
+
+// broadcastConversationUpdate notifies all clients about a conversation metadata change
+func (s *Server) broadcastConversationUpdate(ctx context.Context, conversationID string) {
+	var conversation generated.Conversation
+	err := s.db.Queries(ctx, func(q *generated.Queries) error {
+		var err error
+		conversation, err = q.GetConversation(ctx, conversationID)
+		return err
+	})
+	if err != nil {
+		s.logger.Error("Failed to get conversation for broadcast", "conversationID", conversationID, "error", err)
+		return
+	}
+
+	s.mu.Lock()
+	s.metaSeq++
+	seq := s.metaSeq
+	s.mu.Unlock()
+
+	s.metaSubPub.Publish(seq, conversation)
 }
 
 // Cleanup removes inactive conversation managers

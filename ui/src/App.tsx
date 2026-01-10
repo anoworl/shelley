@@ -101,6 +101,34 @@ function App() {
     loadConversations();
   }, []);
 
+  // Subscribe to conversation metadata updates
+  useEffect(() => {
+    const eventSource = api.createConversationsStream();
+
+    eventSource.onmessage = (event) => {
+      try {
+        const updatedConversation: Conversation = JSON.parse(event.data);
+        setConversations((prev) =>
+          prev.map((conv) =>
+            conv.conversation_id === updatedConversation.conversation_id
+              ? updatedConversation
+              : conv,
+          ),
+        );
+      } catch (err) {
+        console.error("Failed to parse conversation update:", err);
+      }
+    };
+
+    eventSource.onerror = () => {
+      // SSE will auto-reconnect
+    };
+
+    return () => {
+      eventSource.close();
+    };
+  }, []);
+
   // Update page title and URL when conversation changes
   useEffect(() => {
     const currentConv = conversations.find(

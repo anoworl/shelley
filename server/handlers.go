@@ -1046,6 +1046,39 @@ func (s *Server) handleVersion(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(version.GetInfo())
 }
 
+// handleConversationsStream handles GET /api/conversations/stream (SSE)
+// Streams conversation metadata updates to all connected clients
+func (s *Server) handleConversationsStream(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	ctx := r.Context()
+
+	// Set up SSE headers
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("Connection", "keep-alive")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+
+	// Subscribe to conversation metadata updates
+	s.mu.Lock()
+	lastSeq := s.metaSeq
+	s.mu.Unlock()
+
+	next := s.metaSubPub.Subscribe(ctx, lastSeq)
+	for {
+		conversation, cont := next()
+		if !cont {
+			break
+		}
+		data, _ := json.Marshal(conversation)
+		fmt.Fprintf(w, "data: %s\n\n", data)
+		w.(http.Flusher).Flush()
+	}
+}
+
 // handleArchivedConversations handles GET /api/conversations/archived
 func (s *Server) handleArchivedConversations(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {

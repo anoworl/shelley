@@ -21,6 +21,7 @@ import ChangeDirTool from "./ChangeDirTool";
 import BrowserResizeTool from "./BrowserResizeTool";
 import DeploySelfTool from "./DeploySelfTool";
 import DirectoryPickerModal from "./DirectoryPickerModal";
+import { getContextBarColor, formatTokens } from "../utils/context";
 
 interface ContextUsageBarProps {
   contextWindowSize: number;
@@ -34,17 +35,7 @@ function ContextUsageBar({ contextWindowSize, maxContextTokens }: ContextUsageBa
   const percentage = maxContextTokens > 0 ? (contextWindowSize / maxContextTokens) * 100 : 0;
   const clampedPercentage = Math.min(percentage, 100);
 
-  const getBarColor = () => {
-    if (percentage >= 90) return "var(--error-text)";
-    if (percentage >= 70) return "var(--warning-text, #f59e0b)";
-    return "var(--blue-text)";
-  };
-
-  const formatTokens = (tokens: number) => {
-    if (tokens >= 1000000) return `${(tokens / 1000000).toFixed(1)}M`;
-    if (tokens >= 1000) return `${(tokens / 1000).toFixed(0)}k`;
-    return tokens.toString();
-  };
+  const getBarColor = () => getContextBarColor(percentage);
 
   const handleClick = () => {
     setShowPopup(!showPopup);

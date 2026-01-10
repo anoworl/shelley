@@ -73,3 +73,18 @@ UPDATE conversations
 SET cwd = ?, updated_at = CURRENT_TIMESTAMP
 WHERE conversation_id = ?
 RETURNING *;
+
+-- name: UpdateConversationAgentWorking :exec
+UPDATE conversations
+SET agent_working = ?, updated_at = CURRENT_TIMESTAMP
+WHERE conversation_id = ?;
+
+-- name: UpdateConversationContextWindowSize :exec
+UPDATE conversations
+SET context_window_size = ?, updated_at = CURRENT_TIMESTAMP
+WHERE conversation_id = ?;
+
+-- name: UpdateConversationAgentError :exec
+UPDATE conversations
+SET agent_error = ?, updated_at = CURRENT_TIMESTAMP
+WHERE conversation_id = ?;
