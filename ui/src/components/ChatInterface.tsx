@@ -885,13 +885,13 @@ function ChatInterface({
     setShowScrollToBottom(false);
   }, [coalescedItems.length]);
 
-  // Auto-scroll to bottom when new messages arrive (if user is at bottom)
+  // Auto-scroll to bottom when messages change (if user is at bottom)
   useLayoutEffect(() => {
     if (!virtualizerRef.current || coalescedItems.length === 0) return;
     if (shouldStickToBottom.current) {
       virtualizerRef.current.scrollToIndex(coalescedItems.length - 1, { align: "end" });
     }
-  }, [coalescedItems.length]);
+  }, [coalescedItems]);
 
   // Render a single item for Virtualizer
   const renderItem = useCallback(
