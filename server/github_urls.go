@@ -175,4 +175,7 @@ func (s *Server) updateGitHubURLs(ctx context.Context, conversationID string, cw
 	}
 
 	s.logger.Info("Updated GitHub URLs", "conversation_id", conversationID, "urls", mergedURLs)
+
+	// Notify clients of the metadata change
+	s.broadcastConversationUpdate(ctx, conversationID)
 }
