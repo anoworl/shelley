@@ -56,8 +56,6 @@ interface MessageInputProps {
   mobileVisible?: boolean;
   /** Called when input loses focus on mobile (to hide it) */
   onMobileBlur?: () => void;
-  /** Whether this is a new conversation (no messages yet) */
-  isNewConversation?: boolean;
 }
 
 const PERSIST_KEY_PREFIX = "shelley_draft_";
@@ -72,7 +70,6 @@ function MessageInput({
   persistKey,
   mobileVisible = true,
   onMobileBlur,
-  isNewConversation = false,
 }: MessageInputProps) {
   const [message, setMessage] = useState(() => {
     // Load persisted draft if persistKey is set
@@ -365,8 +362,8 @@ function MessageInput({
   // Check if we're on mobile
   const isMobile = typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches;
   
-  // On mobile, hide if not visible (unless there's draft text or it's a new conversation)
-  if (isMobile && !mobileVisible && !message.trim() && !isNewConversation) {
+  // On mobile, hide if not visible (unless there's draft text)
+  if (isMobile && !mobileVisible && !message.trim()) {
     return null;
   }
 

@@ -1265,7 +1265,27 @@ function ChatInterface({
           ) : // Idle state - show ready message, or configuration for empty conversation
           !conversationId ? (
             // Empty conversation - show model (left) and cwd (right)
-            <div className="status-bar-new-conversation">
+            <div
+              className="status-bar-new-conversation status-bar-clickable"
+              onClick={(e) => {
+                // Only trigger if clicking the background, not the buttons
+                if (e.target === e.currentTarget || (e.target as HTMLElement).closest('.status-field')) {
+                  if (!(e.target as HTMLElement).closest('button') && !(e.target as HTMLElement).closest('select')) {
+                    setMobileInputVisible(true);
+                  }
+                }
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  if (!(e.target as HTMLElement).closest('button') && !(e.target as HTMLElement).closest('select')) {
+                    e.preventDefault();
+                    setMobileInputVisible(true);
+                  }
+                }
+              }}
+              role="button"
+              tabIndex={0}
+            >
               {/* Model selector - far left */}
               <div
                 className="status-field status-field-model"
@@ -1359,7 +1379,6 @@ function ChatInterface({
         persistKey={conversationId || "new-conversation"}
         mobileVisible={mobileInputVisible}
         onMobileBlur={() => setMobileInputVisible(false)}
-        isNewConversation={!conversationId}
       />
 
       {/* Directory Picker Modal */}
