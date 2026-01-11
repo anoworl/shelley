@@ -222,20 +222,21 @@ function ConversationDrawer({
       groups.set(repoName, existing);
     }
     
-    // Convert to array and sort by most recent conversation in each group
+    // Convert to array and sort conversations within each group by created_at desc
     const result: GroupedConversations[] = [];
     for (const [key, convs] of groups.entries()) {
+      // Sort by created_at descending (newest first)
+      convs.sort((a, b) => b.created_at.localeCompare(a.created_at));
       result.push({
         repoName: key,
         conversations: convs,
       });
     }
     
-    // Sort groups by the most recent conversation (first conversation in each group)
-    // Conversations are already sorted by updated_at desc from the API
+    // Sort groups by the most recently created conversation in each group
     result.sort((a, b) => {
-      const aLatest = a.conversations[0]?.updated_at || '';
-      const bLatest = b.conversations[0]?.updated_at || '';
+      const aLatest = a.conversations[0]?.created_at || '';
+      const bLatest = b.conversations[0]?.created_at || '';
       return bLatest.localeCompare(aLatest);
     });
     
