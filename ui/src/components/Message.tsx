@@ -823,6 +823,8 @@ function Message({ message, followingTools, showTools = true, onOpenDiffViewer }
   };
 
   const getMessageClasses = () => {
+    const toolsHidden = !showTools && !localToolsExpanded;
+    const hiddenClass = toolsHidden ? " tools-hidden" : "";
     if (isUser) {
       return "message message-user";
     }
@@ -830,9 +832,9 @@ function Message({ message, followingTools, showTools = true, onOpenDiffViewer }
       return "message message-error";
     }
     if (isTool) {
-      return "message message-tool";
+      return "message message-tool" + hiddenClass;
     }
-    return "message message-agent";
+    return "message message-agent" + hiddenClass;
   };
 
   // Special rendering for error messages
