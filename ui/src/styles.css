@@ -410,6 +410,27 @@ button {
   background: var(--text-secondary);
 }
 
+/* Tool toggle button */
+.btn-tool-toggle {
+  width: 2rem;
+  height: 2rem;
+  background: var(--blue-text);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.2s, background-color 0.2s;
+}
+
+.btn-tool-toggle:hover {
+  filter: brightness(1.1);
+}
+
+.btn-tool-toggle.tools-hidden {
+  opacity: 0.4;
+}
+
 /* Header */
 .header {
   flex: 0 0 auto;
