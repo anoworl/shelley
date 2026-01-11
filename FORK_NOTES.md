@@ -28,7 +28,7 @@
 - Improve tool component layout: unified header, compact padding, conditional Command section display (files: `ui/src/components/BashTool.tsx`, `ui/src/components/DeploySelfTool.tsx`, `ui/src/components/PatchTool.tsx`, `ui/src/styles.css`)
 - Require Shift+right-click for custom context menu; normal right-click shows system menu (files: `ui/src/components/Message.tsx`)
 - Fix Model/Dir selector not working on mobile new conversation screen; always show input on new conversation (files: `ui/src/components/ChatInterface.tsx`, `ui/src/styles.css`)
-- Add tool visibility toggle button in header to hide/show tool calls (files: `ui/src/components/ChatInterface.tsx`, `ui/src/styles.css`)
+- Add tool visibility toggle button in header; merge tools into parent message with inline status indicator (files: `ui/src/components/ChatInterface.tsx`, `ui/src/components/MarkdownRenderer.tsx`, `ui/src/components/Message.tsx`, `ui/src/components/ToolGroup.tsx`, `ui/src/styles.css`)
 - LLM: Fallback to default model when requested model fails with 'does not exist' error (files: `loop/loop.go`, `server/convo.go`, `server/server.go`)
 
 ## Compatibility / behavior changes

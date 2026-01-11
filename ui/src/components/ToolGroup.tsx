@@ -28,6 +28,7 @@ export interface ToolCallData {
 
 interface ToolGroupProps {
   tools: ToolCallData[];
+  defaultExpanded?: boolean;
 }
 
 // Map tool names to their specialized components
@@ -49,8 +50,8 @@ const TOOL_COMPONENTS: Record<string, React.ComponentType<any>> = {
   deploy_self: DeploySelfTool,
 };
 
-function ToolGroup({ tools }: ToolGroupProps) {
-  const [expanded, setExpanded] = useState(false);
+function ToolGroup({ tools, defaultExpanded = false }: ToolGroupProps) {
+  const [expanded, setExpanded] = useState(defaultExpanded);
 
   // Count tools by name
   const toolCounts: Record<string, number> = {};

@@ -126,10 +126,11 @@ interface ToolCallData {
 }
 
 // Type for processed message items (messages, tool calls, or tool groups)
-interface CoalescedItem {
-  type: "message" | "tool" | "tool-group";
+// Intermediate item type used during coalescence
+interface IntermediateItem {
+  type: "message" | "tool";
   message?: Message;
-  // For single tool
+  // For tool items
   toolUseId?: string;
   toolName?: string;
   toolInput?: unknown;
@@ -139,8 +140,14 @@ interface CoalescedItem {
   toolEndTime?: string | null;
   hasResult?: boolean;
   display?: unknown;
-  // For tool-group
-  tools?: ToolCallData[];
+}
+
+// Final coalesced item: message with optional following tools
+interface CoalescedItem {
+  type: "message";
+  message: Message;
+  // Tools that follow this message (merged into the message)
+  followingTools?: ToolCallData[];
 }
 
 interface CoalescedToolCallProps {
@@ -727,7 +734,7 @@ function ChatInterface({
       return [];
     }
 
-    const items: CoalescedItem[] = [];
+    const items: IntermediateItem[] = [];
     const toolResultMap: Record<
       string,
       {
@@ -888,52 +895,76 @@ function ChatInterface({
       }
     });
 
-    // Group consecutive tool calls (2 or more) into tool-group items
-    const groupedItems: CoalescedItem[] = [];
+    // Merge consecutive tools into the preceding message's followingTools
+    const finalItems: CoalescedItem[] = [];
     let i = 0;
     while (i < items.length) {
       const item = items[i];
-      if (item.type === "tool") {
-        // Count consecutive tools
+      if (item.type === "message" && item.message) {
+        // Collect all consecutive tools after this message
+        const followingTools: ToolCallData[] = [];
         let j = i + 1;
         while (j < items.length && items[j].type === "tool") {
+          const t = items[j];
+          followingTools.push({
+            toolUseId: t.toolUseId,
+            toolName: t.toolName,
+            toolInput: t.toolInput,
+            toolResult: t.toolResult,
+            toolError: t.toolError,
+            toolStartTime: t.toolStartTime,
+            toolEndTime: t.toolEndTime,
+            hasResult: t.hasResult,
+            display: t.display,
+          });
           j++;
         }
-        const consecutiveCount = j - i;
-        if (consecutiveCount >= 2) {
-          // Group them
-          const toolGroup: ToolCallData[] = [];
-          for (let k = i; k < j; k++) {
-            const t = items[k];
-            toolGroup.push({
-              toolUseId: t.toolUseId,
-              toolName: t.toolName,
-              toolInput: t.toolInput,
-              toolResult: t.toolResult,
-              toolError: t.toolError,
-              toolStartTime: t.toolStartTime,
-              toolEndTime: t.toolEndTime,
-              hasResult: t.hasResult,
-              display: t.display,
-            });
-          }
-          groupedItems.push({
-            type: "tool-group",
-            tools: toolGroup,
+        finalItems.push({
+          type: "message",
+          message: item.message,
+          followingTools: followingTools.length > 0 ? followingTools : undefined,
+        });
+        i = j;
+      } else if (item.type === "tool") {
+        // Orphan tool (no preceding message) - create a placeholder message
+        const followingTools: ToolCallData[] = [];
+        let j = i;
+        while (j < items.length && items[j].type === "tool") {
+          const t = items[j];
+          followingTools.push({
+            toolUseId: t.toolUseId,
+            toolName: t.toolName,
+            toolInput: t.toolInput,
+            toolResult: t.toolResult,
+            toolError: t.toolError,
+            toolStartTime: t.toolStartTime,
+            toolEndTime: t.toolEndTime,
+            hasResult: t.hasResult,
+            display: t.display,
           });
-          i = j;
-        } else {
-          // Single tool, keep as is
-          groupedItems.push(item);
-          i++;
+          j++;
         }
+        // Create a synthetic message for orphan tools
+        finalItems.push({
+          type: "message",
+          message: {
+            message_id: `orphan-tools-${i}`,
+            conversation_id: "",
+            type: "llm",
+            user_data: null,
+            llm_data: null,
+            display_data: null,
+            created_at: new Date().toISOString(),
+          },
+          followingTools,
+        });
+        i = j;
       } else {
-        groupedItems.push(item);
         i++;
       }
     }
 
-    return groupedItems;
+    return finalItems;
   }, [messages]);
 
   // Scroll to bottom - must be after coalescedItems is defined
@@ -956,39 +987,17 @@ function ChatInterface({
   // Render a single item for Virtualizer
   const renderItem = useCallback(
     (index: number, item: CoalescedItem) => {
-      if (item.type === "message" && item.message) {
-        return (
-          <MessageComponent
-            message={item.message}
-            onOpenDiffViewer={(commit) => {
-              setDiffViewerInitialCommit(commit);
-              setShowDiffViewer(true);
-            }}
-          />
-        );
-      } else if (item.type === "tool") {
-        if (!showTools) {
-          return null;
-        }
-        return (
-          <CoalescedToolCall
-            toolName={item.toolName || "Unknown Tool"}
-            toolInput={item.toolInput}
-            toolResult={item.toolResult}
-            toolError={item.toolError}
-            toolStartTime={item.toolStartTime}
-            toolEndTime={item.toolEndTime}
-            hasResult={item.hasResult}
-            display={item.display}
-          />
-        );
-      } else if (item.type === "tool-group" && item.tools) {
-        if (!showTools) {
-          return null;
-        }
-        return <ToolGroup tools={item.tools} />;
-      }
-      return null;
+      return (
+        <MessageComponent
+          message={item.message}
+          followingTools={item.followingTools}
+          showTools={showTools}
+          onOpenDiffViewer={(commit) => {
+            setDiffViewerInitialCommit(commit);
+            setShowDiffViewer(true);
+          }}
+        />
+      );
     },
     [showTools]
   );
@@ -996,15 +1005,7 @@ function ChatInterface({
   // Compute item key for Virtualizer
   const computeItemKey = useCallback(
     (index: number, item: CoalescedItem) => {
-      if (item.type === "message" && item.message) {
-        return item.message.message_id;
-      } else if (item.type === "tool" && item.toolUseId) {
-        return item.toolUseId;
-      } else if (item.type === "tool-group" && item.tools && item.tools.length > 0) {
-        // Use first tool's ID as the group key
-        return `group-${item.tools[0].toolUseId || index}`;
-      }
-      return `item-${index}`;
+      return item.message.message_id;
     },
     []
   );

@@ -1,5 +1,5 @@
-import React, { useMemo } from "react";
-import Markdown from "markdown-to-jsx";
+import React from "react";
+import Markdown, { RuleType } from "markdown-to-jsx";
 import hljs from "highlight.js/lib/core";
 
 // Register only the languages we need
@@ -39,6 +39,7 @@ hljs.registerLanguage("diff", diff);
 
 interface MarkdownRendererProps {
   children: string;
+  suffix?: React.ReactNode;
 }
 
 /**
@@ -67,12 +68,49 @@ function sanitizeUrl(url: string | undefined): string {
   return url;
 }
 
-function MarkdownRenderer({ children }: MarkdownRendererProps) {
+function MarkdownRenderer({ children, suffix }: MarkdownRendererProps) {
+  // Track paragraph count to identify the last one
+  const paragraphCountRef = React.useRef(0);
+  const totalParagraphs = React.useMemo(() => {
+    // Count paragraphs in markdown (simple heuristic: non-empty lines separated by blank lines)
+    const lines = children.split('\n');
+    let count = 0;
+    let inParagraph = false;
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (trimmed === '') {
+        inParagraph = false;
+      } else if (!inParagraph && !trimmed.startsWith('#') && !trimmed.startsWith('```') && !trimmed.startsWith('-') && !trimmed.startsWith('*') && !trimmed.startsWith('>')) {
+        count++;
+        inParagraph = true;
+      }
+    }
+    return Math.max(count, 1);
+  }, [children]);
+  
+  // Reset counter on each render
+  paragraphCountRef.current = 0;
+
   return (
     <Markdown
       options={{
         // Disable raw HTML parsing to prevent XSS from LLM output
         disableParsingRawHTML: true,
+        renderRule(next, node, renderChildren, state) {
+          if (suffix && node.type === RuleType.paragraph) {
+            paragraphCountRef.current++;
+            const isLast = paragraphCountRef.current === totalParagraphs;
+            if (isLast) {
+              return (
+                <p key={state.key}>
+                  {renderChildren(node.children, state)}
+                  {suffix}
+                </p>
+              );
+            }
+          }
+          return next();
+        },
         overrides: {
           // Links open in new tab with URL sanitization
           a: {
