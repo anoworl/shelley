@@ -16,17 +16,15 @@ func TestSanitize(t *testing.T) {
 		input    string
 		expected string
 	}{
-		{"Simple Test", "simple-test"},
-		{"Create a Python Script", "create-a-python-script"},
-		{"Multiple   Spaces", "multiple-spaces"},
-		{"Special@#$%Characters", "specialcharacters"},
-		{"Under_Score_Test", "under-score-test"},
-		{"--multiple-hyphens--", "multiple-hyphens"},
-		{"CamelCase Example", "camelcase-example"},
-		{"123 Numbers Test 456", "123-numbers-test-456"},
-		{"   leading and trailing   ", "leading-and-trailing"},
+		{"Simple Test", "Simple Test"},
+		{"Create a Python Script", "Create a Python Script"},
+		{"Multiple   Spaces", "Multiple Spaces"},
+		{"Special@#$%Characters", "Special@#$%Characters"},
+		{"日本語タイトル", "日本語タイトル"},
+		{"English and 日本語 mixed", "English and 日本語 mixed"},
+		{"   leading and trailing   ", "leading and trailing"},
 		{"", ""},
-		{"Very Long Slug That Might Need To Be Truncated Because It Is Too Long For Normal Use", "very-long-slug-that-might-need-to-be-truncated-because-it-is"},
+		{"Very Long Title That Might Need To Be Truncated Because It Is Too Long For Normal Use Cases", "Very Long Title That Might Need To Be Truncated Because It I"},
 	}
 
 	for _, test := range tests {
@@ -37,18 +35,8 @@ func TestSanitize(t *testing.T) {
 	}
 }
 
-// TestGenerateUniqueSlug tests that slug generation adds numeric suffixes when there are conflicts
+// TestGenerateSlug_UniquenessSuffix tests that slug generation adds numeric suffixes when there are conflicts
 func TestGenerateSlug_UniquenessSuffix(t *testing.T) {
-	// This test verifies the numeric suffix logic without needing a real database or LLM
-	// We'll test the error handling and retry logic by mocking the behavior
-
-	// Test the sanitization works as expected first
-	baseSlug := Sanitize("Test Message")
-	expected := "test-message"
-	if baseSlug != expected {
-		t.Errorf("Sanitize failed: got %q, expected %q", baseSlug, expected)
-	}
-
 	// Test that numeric suffixes would be correctly formatted
 	// This mimics what the GenerateSlug function does internally
 	tests := []struct {
@@ -56,10 +44,10 @@ func TestGenerateSlug_UniquenessSuffix(t *testing.T) {
 		attempt  int
 		expected string
 	}{
-		{"test-message", 0, "test-message-1"},
-		{"test-message", 1, "test-message-2"},
-		{"test-message", 2, "test-message-3"},
-		{"help-python", 9, "help-python-10"},
+		{"test message", 0, "test message-1"},
+		{"test message", 1, "test message-2"},
+		{"test message", 2, "test message-3"},
+		{"help python", 9, "help python-10"},
 	}
 
 	for _, test := range tests {
@@ -116,10 +104,10 @@ func TestGenerateSlug_DatabaseIntegration(t *testing.T) {
 		t.Fatalf("Failed to migrate database: %v", err)
 	}
 
-	// Create mock LLM provider that always returns the same slug
+	// Create mock LLM provider that always returns the same title
 	mockLLM := &MockLLMProvider{
 		Service: &MockLLMService{
-			ResponseText: "test-slug", // Always return the same slug to force conflicts
+			ResponseText: "test title", // Always return the same title to force conflicts
 		},
 	}
 
@@ -134,13 +122,13 @@ func TestGenerateSlug_DatabaseIntegration(t *testing.T) {
 		t.Fatalf("Failed to create first conversation: %v", err)
 	}
 
-	// Generate first slug - should succeed with "test-slug"
+	// Generate first slug - should succeed with "test title"
 	slug1, err := GenerateSlug(ctx, mockLLM, database, logger, conv1.ConversationID, "Test message", "")
 	if err != nil {
 		t.Fatalf("Failed to generate first slug: %v", err)
 	}
-	if slug1 != "test-slug" {
-		t.Errorf("Expected first slug to be 'test-slug', got %q", slug1)
+	if slug1 != "test title" {
+		t.Errorf("Expected first slug to be 'test title', got %q", slug1)
 	}
 
 	// Create second conversation
@@ -149,13 +137,13 @@ func TestGenerateSlug_DatabaseIntegration(t *testing.T) {
 		t.Fatalf("Failed to create second conversation: %v", err)
 	}
 
-	// Generate second slug - should get "test-slug-1" due to conflict
+	// Generate second slug - should get "test title-1" due to conflict
 	slug2, err := GenerateSlug(ctx, mockLLM, database, logger, conv2.ConversationID, "Test message", "")
 	if err != nil {
 		t.Fatalf("Failed to generate second slug: %v", err)
 	}
-	if slug2 != "test-slug-1" {
-		t.Errorf("Expected second slug to be 'test-slug-1', got %q", slug2)
+	if slug2 != "test title-1" {
+		t.Errorf("Expected second slug to be 'test title-1', got %q", slug2)
 	}
 
 	// Create third conversation
@@ -164,13 +152,13 @@ func TestGenerateSlug_DatabaseIntegration(t *testing.T) {
 		t.Fatalf("Failed to create third conversation: %v", err)
 	}
 
-	// Generate third slug - should get "test-slug-2" due to conflict
+	// Generate third slug - should get "test title-2" due to conflict
 	slug3, err := GenerateSlug(ctx, mockLLM, database, logger, conv3.ConversationID, "Test message", "")
 	if err != nil {
 		t.Fatalf("Failed to generate third slug: %v", err)
 	}
-	if slug3 != "test-slug-2" {
-		t.Errorf("Expected third slug to be 'test-slug-2', got %q", slug3)
+	if slug3 != "test title-2" {
+		t.Errorf("Expected third slug to be 'test title-2', got %q", slug3)
 	}
 
 	// Verify all slugs are different

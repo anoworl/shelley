@@ -133,31 +133,6 @@ func (q *Queries) GetConversation(ctx context.Context, conversationID string) (C
 	return i, err
 }
 
-const getConversationBySlug = `-- name: GetConversationBySlug :one
-SELECT conversation_id, slug, user_initiated, created_at, updated_at, cwd, archived, agent_working, context_window_size, agent_error, github_urls, git_origin FROM conversations
-WHERE slug = ?
-`
-
-func (q *Queries) GetConversationBySlug(ctx context.Context, slug *string) (Conversation, error) {
-	row := q.db.QueryRowContext(ctx, getConversationBySlug, slug)
-	var i Conversation
-	err := row.Scan(
-		&i.ConversationID,
-		&i.Slug,
-		&i.UserInitiated,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-		&i.Cwd,
-		&i.Archived,
-		&i.AgentWorking,
-		&i.ContextWindowSize,
-		&i.AgentError,
-		&i.GithubUrls,
-		&i.GitOrigin,
-	)
-	return i, err
-}
-
 const listAllActiveConversations = `-- name: ListAllActiveConversations :many
 SELECT conversation_id, slug, user_initiated, created_at, updated_at, cwd, archived, agent_working, context_window_size, agent_error, github_urls, git_origin FROM conversations
 WHERE archived = FALSE

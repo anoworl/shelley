@@ -140,28 +140,20 @@ Respond with only the slug, nothing else.`, userMessage)
 	return slug, nil
 }
 
-// Sanitize cleans a string to be a valid slug
+// Sanitize cleans a string to be a valid title (allows Unicode letters including Japanese)
 func Sanitize(input string) string {
-	// Convert to lowercase
-	slug := strings.ToLower(input)
+	// Trim whitespace
+	title := strings.TrimSpace(input)
 
-	// Replace spaces and underscores with hyphens
-	slug = regexp.MustCompile(`[\s_]+`).ReplaceAllString(slug, "-")
+	// Replace multiple whitespace with single space
+	title = regexp.MustCompile(`\s+`).ReplaceAllString(title, " ")
 
-	// Remove non-alphanumeric characters except hyphens
-	slug = regexp.MustCompile(`[^a-z0-9-]+`).ReplaceAllString(slug, "")
-
-	// Remove multiple consecutive hyphens
-	slug = regexp.MustCompile(`-+`).ReplaceAllString(slug, "-")
-
-	// Remove leading/trailing hyphens
-	slug = strings.Trim(slug, "-")
-
-	// Limit length
-	if len(slug) > 60 {
-		slug = slug[:60]
-		slug = strings.Trim(slug, "-")
+	// Limit length (by runes, not bytes)
+	runes := []rune(title)
+	if len(runes) > 60 {
+		title = string(runes[:60])
+		title = strings.TrimSpace(title)
 	}
 
-	return slug
+	return title
 }

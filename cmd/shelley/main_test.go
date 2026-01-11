@@ -16,20 +16,17 @@ import (
 	"shelley.exe.dev/slug"
 )
 
-func TestSanitizeSlug(t *testing.T) {
+func TestSanitizeTitle(t *testing.T) {
 	tests := []struct {
 		input    string
 		expected string
 	}{
-		{"Simple Test", "simple-test"},
-		{"Create a Python Script", "create-a-python-script"},
-		{"Multiple   Spaces", "multiple-spaces"},
-		{"Special@#$%Characters", "specialcharacters"},
-		{"Under_Score_Test", "under-score-test"},
-		{"--multiple-hyphens--", "multiple-hyphens"},
-		{"CamelCase Example", "camelcase-example"},
-		{"123 Numbers Test 456", "123-numbers-test-456"},
-		{"   leading and trailing   ", "leading-and-trailing"},
+		{"Simple Test", "Simple Test"},
+		{"Create a Python Script", "Create a Python Script"},
+		{"Multiple   Spaces", "Multiple Spaces"},
+		{"日本語タイトル", "日本語タイトル"},
+		{"English and 日本語 mixed", "English and 日本語 mixed"},
+		{"   leading and trailing   ", "leading and trailing"},
 		{"", ""},
 	}
 
