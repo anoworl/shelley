@@ -854,6 +854,9 @@ func (s *Server) StartWithListener(listener net.Listener) error {
 		}
 	}()
 
+	// Recover interrupted conversations after server starts accepting requests
+	go s.recoverInterruptedConversations(context.Background())
+
 	// Wait for shutdown signal or server error
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
