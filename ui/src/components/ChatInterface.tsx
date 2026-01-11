@@ -398,6 +398,7 @@ function ChatInterface({
   mostRecentCwd,
 }: ChatInterfaceProps) {
   const [messages, setMessages] = useState<Message[]>([]);
+  const [pendingUserMessage, setPendingUserMessage] = useState<Message | null>(null);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -503,6 +504,7 @@ function ChatInterface({
     } else {
       // No conversation yet, show empty state
       setMessages([]);
+      setPendingUserMessage(null);
       setContextWindowSize(0);
       setLoading(false);
     }
@@ -590,6 +592,12 @@ function ChatInterface({
         // Merge new messages without losing existing ones.
         // If no new messages (e.g., only conversation/slug update), keep existing list.
         if (incomingMessages.length > 0) {
+          // Clear pending user message if we received a user message from the server
+          const hasUserMessage = incomingMessages.some((m) => m.type === "user");
+          if (hasUserMessage) {
+            setPendingUserMessage(null);
+          }
+
           setMessages((prev) => {
             const byId = new Map<string, Message>();
             for (const m of prev) byId.set(m.message_id, m);
@@ -665,6 +673,21 @@ function ChatInterface({
   const sendMessage = async (message: string) => {
     if (!message.trim() || sending) return;
 
+    // Optimistic update: immediately show user message
+    const optimisticMessage: Message = {
+      message_id: `pending-${Date.now()}`,
+      conversation_id: conversationId || "",
+      type: "user",
+      user_data: null,
+      llm_data: JSON.stringify({
+        Role: 0, // user
+        Content: [{ Type: 2, Text: message.trim() }],
+      }),
+      display_data: null,
+      created_at: new Date().toISOString(),
+    };
+    setPendingUserMessage(optimisticMessage);
+
     try {
       setSending(true);
       setError(null);
@@ -691,6 +714,7 @@ function ChatInterface({
       const message = err instanceof Error ? err.message : "Unknown error";
       setError(message);
       setAgentWorking(false);
+      setPendingUserMessage(null); // Clear optimistic message on error
       throw err; // Re-throw so MessageInput can preserve the text
     } finally {
       setSending(false);
@@ -730,7 +754,10 @@ function ChatInterface({
 
   // Process messages to coalesce tool calls (memoized for Virtualizer)
   const coalescedItems = useMemo(() => {
-    if (messages.length === 0) {
+    // Include pending user message if present
+    const allMessages = pendingUserMessage ? [...messages, pendingUserMessage] : messages;
+
+    if (allMessages.length === 0) {
       return [];
     }
 
@@ -749,7 +776,7 @@ function ChatInterface({
     const displayDataMap: Record<string, unknown> = {};
 
     // First pass: collect all tool results
-    messages.forEach((message) => {
+    allMessages.forEach((message) => {
       // Collect tool_result data from llm_data if present
       if (message.llm_data) {
         try {
@@ -803,7 +830,7 @@ function ChatInterface({
     });
 
     // Second pass: process messages and extract tool uses
-    messages.forEach((message) => {
+    allMessages.forEach((message) => {
       // Skip system messages
       if (message.type === "system") {
         return;
@@ -965,7 +992,7 @@ function ChatInterface({
     }
 
     return finalItems;
-  }, [messages]);
+  }, [messages, pendingUserMessage]);
 
   // Scroll to bottom - must be after coalescedItems is defined
   const scrollToBottom = useCallback(() => {
