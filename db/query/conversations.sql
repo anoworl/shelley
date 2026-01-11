@@ -7,10 +7,6 @@ RETURNING *;
 SELECT * FROM conversations
 WHERE conversation_id = ?;
 
--- name: GetConversationBySlug :one
-SELECT * FROM conversations
-WHERE slug = ?;
-
 -- name: ListConversations :many
 SELECT * FROM conversations
 WHERE archived = FALSE

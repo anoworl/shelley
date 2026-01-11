@@ -5,38 +5,27 @@ import { useSwipeDrawer } from "./hooks/useSwipeDrawer";
 import { Conversation } from "./types";
 import { api } from "./services/api";
 
-// Check if a slug is a generated ID (format: cXXXX where X is alphanumeric)
-function isGeneratedId(slug: string | null): boolean {
-  if (!slug) return true;
-  return /^c[a-z0-9]+$/i.test(slug);
-}
-
-// Get slug from the current URL path (expects /c/<slug> format)
-function getSlugFromPath(): string | null {
+// Get conversation ID from the current URL path (expects /c/<id> format)
+function getIdFromPath(): string | null {
   const path = window.location.pathname;
-  // Check for /c/<slug> format
   if (path.startsWith("/c/")) {
-    const slug = path.slice(3); // Remove "/c/" prefix
-    if (slug) {
-      return slug;
+    const id = path.slice(3); // Remove "/c/" prefix
+    if (id) {
+      return id;
     }
   }
   return null;
 }
 
-// Capture the initial slug from URL BEFORE React renders, so it won't be affected
-// by the useEffect that updates the URL based on current conversation.
-const initialSlugFromUrl = getSlugFromPath();
+// Capture the initial ID from URL BEFORE React renders
+const initialIdFromUrl = getIdFromPath();
 
-// Update the URL to reflect the current conversation slug
-function updateUrlWithSlug(conversation: Conversation | undefined) {
-  const currentSlug = getSlugFromPath();
-  const newSlug =
-    conversation?.slug && !isGeneratedId(conversation.slug) ? conversation.slug : null;
-
-  if (currentSlug !== newSlug) {
-    if (newSlug) {
-      window.history.replaceState({}, "", `/c/${newSlug}`);
+// Update the URL to reflect the current conversation ID
+function updateUrlWithId(conversationId: string | null) {
+  const currentId = getIdFromPath();
+  if (currentId !== conversationId) {
+    if (conversationId) {
+      window.history.replaceState({}, "", `/c/${conversationId}`);
     } else {
       window.history.replaceState({}, "", "/");
     }
@@ -47,7 +36,7 @@ function updatePageTitle(conversation: Conversation | undefined) {
   const hostname = window.__SHELLEY_INIT__?.hostname;
   const parts: string[] = [];
 
-  if (conversation?.slug && !isGeneratedId(conversation.slug)) {
+  if (conversation?.slug) {
     parts.push(conversation.slug);
   }
   if (hostname) {
@@ -73,33 +62,31 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const initialSlugResolved = useRef(false);
 
-  // Resolve initial slug from URL - uses the captured initialSlugFromUrl
-  const resolveInitialSlug = useCallback(async (convs: Conversation[]) => {
+  // Resolve initial conversation ID from URL
+  const resolveInitialId = useCallback(async (convs: Conversation[]) => {
     if (initialSlugResolved.current) return null;
     initialSlugResolved.current = true;
 
-    // Use the slug captured at module load time, not the current URL
-    // (which may have been changed by updateUrlWithSlug before this runs)
-    const urlSlug = initialSlugFromUrl;
-    if (!urlSlug) return null;
+    const urlId = initialIdFromUrl;
+    if (!urlId) return null;
 
-    // First check if we already have this conversation in our list
-    const existingConv = convs.find((c) => c.slug === urlSlug);
+    // Check if this conversation exists in our list
+    const existingConv = convs.find((c) => c.conversation_id === urlId);
     if (existingConv) {
       return existingConv.conversation_id;
     }
 
-    // Otherwise, try to fetch by slug
+    // Otherwise, try to fetch by ID (might be archived)
     try {
-      const conv = await api.getConversationBySlug(urlSlug);
-      if (conv) {
-        return conv.conversation_id;
+      const response = await api.getConversation(urlId);
+      if (response?.conversation) {
+        return response.conversation.conversation_id;
       }
     } catch (err) {
-      console.error("Failed to resolve slug:", err);
+      console.error("Failed to resolve conversation ID:", err);
     }
 
-    // Slug not found, clear the URL
+    // Conversation not found, clear the URL
     window.history.replaceState({}, "", "/");
     return null;
   }, []);
@@ -143,7 +130,7 @@ function App() {
       (conv) => conv.conversation_id === currentConversationId,
     );
     updatePageTitle(currentConv);
-    updateUrlWithSlug(currentConv);
+    updateUrlWithId(currentConversationId);
   }, [currentConversationId, conversations]);
 
   const loadConversations = async () => {
@@ -153,10 +140,10 @@ function App() {
       const convs = await api.getConversations();
       setConversations(convs);
 
-      // Try to resolve conversation from URL slug first
-      const slugConvId = await resolveInitialSlug(convs);
-      if (slugConvId) {
-        setCurrentConversationId(slugConvId);
+      // Try to resolve conversation from URL ID first
+      const urlConvId = await resolveInitialId(convs);
+      if (urlConvId) {
+        setCurrentConversationId(urlConvId);
       } else if (!currentConversationId && convs.length > 0) {
         // If we have conversations and no current one selected, select the first
         setCurrentConversationId(convs[0].conversation_id);

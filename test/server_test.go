@@ -468,31 +468,28 @@ func TestSlugGeneration(t *testing.T) {
 	// _ = conv // avoid unused variable warning
 }
 
-func TestSanitizeSlug(t *testing.T) {
+func TestSanitizeTitle(t *testing.T) {
 	tests := []struct {
 		name     string
 		input    string
 		expected string
 	}{
-		{"basic text", "Hello World", "hello-world"},
-		{"with numbers", "Python3 Tutorial", "python3-tutorial"},
-		{"with special chars", "C++ Programming!", "c-programming"},
-		{"multiple spaces", "Very  Long   Title", "very-long-title"},
-		{"underscores", "test_function_name", "test-function-name"},
-		{"mixed case", "CamelCaseExample", "camelcaseexample"},
-		{"with hyphens", "pre-existing-hyphens", "pre-existing-hyphens"},
+		{"basic text", "Hello World", "Hello World"},
+		{"with numbers", "Python3 Tutorial", "Python3 Tutorial"},
+		{"with special chars", "C++ Programming!", "C++ Programming!"},
+		{"multiple spaces", "Very  Long   Title", "Very Long Title"},
+		{"Japanese", "日本語タイトル", "日本語タイトル"},
+		{"mixed Japanese and English", "Test テスト 123", "Test テスト 123"},
 		{"leading/trailing spaces", "  trimmed  ", "trimmed"},
-		{"leading/trailing hyphens", "-start-end-", "start-end"},
-		{"multiple consecutive hyphens", "test---slug", "test-slug"},
-		{"empty after sanitization", "!@#$%^&*()", ""},
-		{"very long", "this-is-a-very-long-slug-that-should-be-truncated-because-it-exceeds-the-maximum-length", "this-is-a-very-long-slug-that-should-be-truncated-because-it"},
+		{"empty", "", ""},
+		{"very long", "This is a very long title that should be truncated because it exceeds the maximum length limit", "This is a very long title that should be truncated because i"},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := slug.Sanitize(tt.input)
 			if result != tt.expected {
-				t.Errorf("SanitizeSlug(%q) = %q, want %q", tt.input, result, tt.expected)
+				t.Errorf("Sanitize(%q) = %q, want %q", tt.input, result, tt.expected)
 			}
 		})
 	}
@@ -554,29 +551,15 @@ func TestSlugEndToEnd(t *testing.T) {
 		t.Fatalf("Failed to migrate database: %v", err)
 	}
 
-	// Create a conversation with a specific slug
+	// Create a conversation with a specific slug (now used as title)
 	ctx := context.Background()
-	testSlug := "test-conversation-slug"
-	conv, err := database.CreateConversation(ctx, &testSlug, true, nil, nil)
+	testTitle := "テスト会話タイトル"
+	conv, err := database.CreateConversation(ctx, &testTitle, true, nil, nil)
 	if err != nil {
 		t.Fatalf("Failed to create conversation: %v", err)
 	}
 
-	// Test retrieving by slug
-	retrievedBySlug, err := database.GetConversationBySlug(ctx, testSlug)
-	if err != nil {
-		t.Fatalf("Failed to retrieve conversation by slug: %v", err)
-	}
-
-	if retrievedBySlug.ConversationID != conv.ConversationID {
-		t.Errorf("Expected conversation ID %s, got %s", conv.ConversationID, retrievedBySlug.ConversationID)
-	}
-
-	if retrievedBySlug.Slug == nil || *retrievedBySlug.Slug != testSlug {
-		t.Errorf("Expected slug %s, got %v", testSlug, retrievedBySlug.Slug)
-	}
-
-	// Test retrieving by ID still works
+	// Test retrieving by ID
 	retrievedByID, err := database.GetConversationByID(ctx, conv.ConversationID)
 	if err != nil {
 		t.Fatalf("Failed to retrieve conversation by ID: %v", err)
@@ -586,7 +569,11 @@ func TestSlugEndToEnd(t *testing.T) {
 		t.Errorf("Expected conversation ID %s, got %s", conv.ConversationID, retrievedByID.ConversationID)
 	}
 
-	t.Logf("Successfully tested slug-based conversation retrieval: %s -> %s", testSlug, conv.ConversationID)
+	if retrievedByID.Slug == nil || *retrievedByID.Slug != testTitle {
+		t.Errorf("Expected title %s, got %v", testTitle, retrievedByID.Slug)
+	}
+
+	t.Logf("Successfully tested ID-based conversation retrieval with Japanese title: %s -> %s", testTitle, conv.ConversationID)
 }
 
 // Test that slug updates are reflected in the stream

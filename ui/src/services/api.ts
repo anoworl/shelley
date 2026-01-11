@@ -138,19 +138,6 @@ class ApiService {
     }
   }
 
-  async getConversationBySlug(slug: string): Promise<Conversation | null> {
-    const response = await fetch(
-      `${this.baseUrl}/conversation-by-slug/${encodeURIComponent(slug)}`,
-    );
-    if (response.status === 404) {
-      return null;
-    }
-    if (!response.ok) {
-      throw new Error(`Failed to get conversation by slug: ${response.statusText}`);
-    }
-    return response.json();
-  }
-
   // Git diff APIs
   async getGitDiffs(cwd: string): Promise<{ diffs: GitDiffInfo[]; gitRoot: string }> {
     const response = await fetch(`${this.baseUrl}/git/diffs?cwd=${encodeURIComponent(cwd)}`);

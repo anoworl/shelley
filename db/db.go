@@ -254,21 +254,6 @@ func (db *DB) GetConversationByID(ctx context.Context, conversationID string) (*
 	return &conversation, err
 }
 
-// GetConversationBySlug retrieves a conversation by its slug
-func (db *DB) GetConversationBySlug(ctx context.Context, slug string) (*generated.Conversation, error) {
-	var conversation generated.Conversation
-	err := db.pool.Rx(ctx, func(ctx context.Context, rx *Rx) error {
-		q := generated.New(rx.Conn())
-		var err error
-		conversation, err = q.GetConversationBySlug(ctx, &slug)
-		return err
-	})
-	if err == sql.ErrNoRows {
-		return nil, fmt.Errorf("conversation not found with slug: %s", slug)
-	}
-	return &conversation, err
-}
-
 // ListConversations retrieves conversations with pagination
 func (db *DB) ListConversations(ctx context.Context, limit, offset int64) ([]generated.Conversation, error) {
 	var conversations []generated.Conversation

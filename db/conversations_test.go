@@ -99,41 +99,6 @@ func TestConversationService_GetByID(t *testing.T) {
 	}
 }
 
-func TestConversationService_GetBySlug(t *testing.T) {
-	db := setupTestDB(t)
-	defer db.Close()
-
-	// Using db directly instead of service
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	// Create a test conversation with slug
-	created, err := db.CreateConversation(ctx, stringPtr("test-slug"), true, nil, nil)
-	if err != nil {
-		t.Fatalf("Failed to create test conversation: %v", err)
-	}
-
-	// Test getting by existing slug
-	conv, err := db.GetConversationBySlug(ctx, "test-slug")
-	if err != nil {
-		t.Errorf("GetBySlug() error = %v", err)
-		return
-	}
-
-	if conv.ConversationID != created.ConversationID {
-		t.Errorf("Expected conversation ID %s, got %s", created.ConversationID, conv.ConversationID)
-	}
-
-	// Test getting by non-existent slug
-	_, err = db.GetConversationBySlug(ctx, "non-existent-slug")
-	if err == nil {
-		t.Error("Expected error for non-existent slug")
-	}
-	if !strings.Contains(err.Error(), "not found") {
-		t.Errorf("Expected 'not found' in error message, got: %v", err)
-	}
-}
-
 func TestConversationService_UpdateSlug(t *testing.T) {
 	db := setupTestDB(t)
 	defer db.Close()

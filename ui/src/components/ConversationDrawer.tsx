@@ -151,16 +151,13 @@ function ConversationDrawer({
     }
   };
 
-  // Sanitize slug: lowercase, alphanumeric and hyphens only, max 60 chars
-  const sanitizeSlug = (input: string): string => {
+  // Sanitize title: trim whitespace, collapse multiple spaces, max 60 chars
+  const sanitizeTitle = (input: string): string => {
     return input
-      .toLowerCase()
-      .replace(/[\s_]+/g, "-")
-      .replace(/[^a-z0-9-]+/g, "")
-      .replace(/-+/g, "-")
-      .replace(/^-|-$/g, "")
+      .trim()
+      .replace(/\s+/g, " ")
       .slice(0, 60)
-      .replace(/-$/g, "");
+      .trim();
   };
 
   const handleStartRename = (e: React.MouseEvent, conversation: Conversation) => {
@@ -172,7 +169,7 @@ function ConversationDrawer({
   };
 
   const handleRename = async (conversationId: string) => {
-    const sanitized = sanitizeSlug(editingSlug);
+    const sanitized = sanitizeTitle(editingSlug);
     if (!sanitized) {
       setEditingId(null);
       return;
