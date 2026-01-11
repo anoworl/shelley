@@ -30,6 +30,7 @@
 - Fix Model/Dir selector not working on mobile new conversation screen; always show input on new conversation (files: `ui/src/components/ChatInterface.tsx`, `ui/src/styles.css`)
 - Add tool visibility toggle button in header; merge tools into parent message with inline status indicator (files: `ui/src/components/ChatInterface.tsx`, `ui/src/components/MarkdownRenderer.tsx`, `ui/src/components/Message.tsx`, `ui/src/components/ToolGroup.tsx`, `ui/src/styles.css`)
 - LLM: Fallback to default model when requested model fails with 'does not exist' error (files: `loop/loop.go`, `server/convo.go`, `server/server.go`)
+- Fix scroll shake when reaching bottom of conversation (files: `ui/src/components/ChatInterface.tsx`)
 
 ## Compatibility / behavior changes
 

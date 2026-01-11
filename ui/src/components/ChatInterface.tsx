@@ -1328,7 +1328,7 @@ function ChatInterface({
                 const atBottom =
                   offset - virtualizerRef.current.scrollSize + virtualizerRef.current.viewportSize >= -1.5;
                 shouldStickToBottom.current = atBottom;
-                setShowScrollToBottom(!atBottom);
+                setShowScrollToBottom((prev) => (prev === !atBottom ? prev : !atBottom));
               }}
             >
               {coalescedItems.map((item, index) => (
