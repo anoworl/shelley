@@ -20,11 +20,7 @@ func (s *Server) recoverInterruptedConversations(ctx context.Context) {
 	var conversations []generated.Conversation
 	err := s.db.Queries(ctx, func(q *generated.Queries) error {
 		var err error
-		// Get all non-archived conversations (no practical limit)
-		conversations, err = q.ListConversations(ctx, generated.ListConversationsParams{
-			Limit:  10000,
-			Offset: 0,
-		})
+		conversations, err = q.ListAllActiveConversations(ctx)
 		return err
 	})
 	if err != nil {
@@ -34,11 +30,6 @@ func (s *Server) recoverInterruptedConversations(ctx context.Context) {
 
 	recoveredCount := 0
 	for _, conv := range conversations {
-		// Skip archived conversations
-		if conv.Archived {
-			continue
-		}
-
 		// Get messages for this conversation to check if agent was working
 		var messages []generated.Message
 		err := s.db.Queries(ctx, func(q *generated.Queries) error {
