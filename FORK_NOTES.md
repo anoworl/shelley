@@ -32,3 +32,4 @@
 
 - None
 - Compact UI layout: smaller padding/margins, left-aligned user messages with AI messages marked by left border, smaller fonts, condensed conversation list with divider lines (files: `ui/src/styles.css`)
+- Add Markdown rendering for LLM chat messages using markdown-to-jsx (files: `ui/src/components/MarkdownRenderer.tsx`, `ui/src/components/Message.tsx`, `ui/src/styles.css`, `ui/package.json`)
