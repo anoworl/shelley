@@ -3926,6 +3926,10 @@ svg {
   line-height: 1.6;
 }
 
+.message-agent .markdown-content {
+  display: contents;
+}
+
 .markdown-content p {
   margin: 0.5em 0;
 }
