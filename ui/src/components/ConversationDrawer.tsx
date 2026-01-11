@@ -305,6 +305,43 @@ function ConversationDrawer({
                 {formatCwdForDisplay(conversation.cwd)}
               </span>
             )}
+            {conversation.github_urls && (() => {
+              const urls: string[] = JSON.parse(conversation.github_urls);
+              if (urls.length === 0) return null;
+              // Extract PR/Issue numbers from URLs (last one wins)
+              const prUrls = urls.filter(u => u.includes('/pull/'));
+              const issueUrls = urls.filter(u => u.includes('/issues/'));
+              const lastPrUrl = prUrls.length > 0 ? prUrls[prUrls.length - 1] : null;
+              const lastIssueUrl = issueUrls.length > 0 ? issueUrls[issueUrls.length - 1] : null;
+              const lastPrNumber = lastPrUrl?.match(/\/pull\/(\d+)/)?.[1];
+              const lastIssueNumber = lastIssueUrl?.match(/\/issues\/(\d+)/)?.[1];
+              return (
+                <span className="conversation-github-links" title={urls.join('\n')}>
+                  {lastPrNumber && lastPrUrl && (
+                    <a
+                      href={lastPrUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="github-link-badge pr"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      #{lastPrNumber}
+                    </a>
+                  )}
+                  {lastIssueNumber && lastIssueUrl && (
+                    <a
+                      href={lastIssueUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="github-link-badge issue"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      #{lastIssueNumber}
+                    </a>
+                  )}
+                </span>
+              );
+            })()}
             {conversation.context_window_size > 0 && (() => {
               const maxTokens = 200000;
               const percentage = (conversation.context_window_size / maxTokens) * 100;
@@ -321,33 +358,6 @@ function ConversationDrawer({
                     }}
                   />
                 </div>
-              );
-            })()}
-            {conversation.github_urls && (() => {
-              const urls: string[] = JSON.parse(conversation.github_urls);
-              if (urls.length === 0) return null;
-              const prCount = urls.filter(u => u.includes('/pull/')).length;
-              const issueCount = urls.filter(u => u.includes('/issues/')).length;
-              return (
-                <span className="conversation-github-links" title={urls.join('\n')}>
-                  {prCount > 0 && (
-                    <span className="github-link-badge pr">
-                      <svg viewBox="0 0 16 16" fill="currentColor" style={{ width: '0.75rem', height: '0.75rem' }}>
-                        <path d="M1.5 3.25a2.25 2.25 0 1 1 3 2.122v5.256a2.251 2.251 0 1 1-1.5 0V5.372A2.25 2.25 0 0 1 1.5 3.25Zm5.677-.177L9.573.677A.25.25 0 0 1 10 .854V2.5h1A2.5 2.5 0 0 1 13.5 5v5.628a2.251 2.251 0 1 1-1.5 0V5a1 1 0 0 0-1-1h-1v1.646a.25.25 0 0 1-.427.177L7.177 3.427a.25.25 0 0 1 0-.354ZM3.75 2.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5Zm0 9.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5Zm8.25.75a.75.75 0 1 0 1.5 0 .75.75 0 0 0-1.5 0Z"></path>
-                      </svg>
-                      {prCount}
-                    </span>
-                  )}
-                  {issueCount > 0 && (
-                    <span className="github-link-badge issue">
-                      <svg viewBox="0 0 16 16" fill="currentColor" style={{ width: '0.75rem', height: '0.75rem' }}>
-                        <path d="M8 9.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z"></path>
-                        <path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0ZM1.5 8a6.5 6.5 0 1 0 13 0 6.5 6.5 0 0 0-13 0Z"></path>
-                      </svg>
-                      {issueCount}
-                    </span>
-                  )}
-                </span>
               );
             })()}
           </div>

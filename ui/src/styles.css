@@ -3477,6 +3477,7 @@ svg {
   display: flex;
   gap: 0.375rem;
   align-items: center;
+  margin-left: auto;
 }
 
 .github-link-badge {
@@ -3488,6 +3489,7 @@ svg {
   border-radius: 0.25rem;
   color: var(--text-secondary);
   background: var(--bg-secondary);
+  text-decoration: none;
 }
 
 .github-link-badge.pr {
