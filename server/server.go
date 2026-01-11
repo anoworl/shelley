@@ -309,6 +309,9 @@ func (s *Server) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/api/read", s.handleRead)                          // Serves images
 	mux.Handle("/api/write-file", http.HandlerFunc(s.handleWriteFile)) // Small response
 
+	// Settings routes
+	mux.Handle("/api/settings", http.HandlerFunc(s.handleSettings))
+
 	// Version endpoint
 	mux.Handle("/version", http.HandlerFunc(s.handleVersion)) // Small response
 
