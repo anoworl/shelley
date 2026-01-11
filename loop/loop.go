@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"strings"
 	"sync"
 	"time"
 
@@ -22,6 +23,7 @@ type GitStateChangeFunc func(ctx context.Context, state *gitstate.GitState)
 // Config contains all configuration needed to create a Loop
 type Config struct {
 	LLM              llm.Service
+	FallbackLLM      llm.Service // Fallback LLM service to use if primary fails with "model does not exist" error
 	History          []llm.Message
 	Tools            []*llm.Tool
 	RecordMessage    MessageRecordFunc
@@ -39,6 +41,7 @@ type Config struct {
 // Notably, when the turn ends, the "Loop" is over. TODO: maybe rename to Turn?
 type Loop struct {
 	llm              llm.Service
+	fallbackLLM      llm.Service
 	tools            []*llm.Tool
 	recordMessage    MessageRecordFunc
 	history          []llm.Message
@@ -70,6 +73,7 @@ func NewLoop(config Config) *Loop {
 
 	return &Loop{
 		llm:              config.LLM,
+		fallbackLLM:      config.FallbackLLM,
 		history:          config.History,
 		tools:            config.Tools,
 		recordMessage:    config.RecordMessage,
@@ -265,20 +269,37 @@ func (l *Loop) processLLMRequest(ctx context.Context) error {
 
 	resp, err := llmService.Do(llmCtx, req)
 	if err != nil {
-		// Record the error as a message so it can be displayed in the UI
-		errorMessage := llm.Message{
-			Role: llm.MessageRoleAssistant,
-			Content: []llm.Content{
-				{
-					Type: llm.ContentTypeText,
-					Text: fmt.Sprintf("LLM request failed: %v", err),
+		// Check if this is a "model does not exist" error and we have a fallback
+		errStr := err.Error()
+		if l.fallbackLLM != nil && (strings.Contains(errStr, "does not exist") || strings.Contains(errStr, "status 404")) {
+			l.logger.Warn("LLM request failed with model error, trying fallback", "error", err)
+			// Try with fallback LLM
+			resp, err = l.fallbackLLM.Do(llmCtx, req)
+			if err == nil {
+				// Fallback succeeded, switch to fallback LLM for future requests
+				l.mu.Lock()
+				l.llm = l.fallbackLLM
+				l.fallbackLLM = nil
+				l.mu.Unlock()
+				l.logger.Info("switched to fallback LLM")
+			}
+		}
+		if err != nil {
+			// Record the error as a message so it can be displayed in the UI
+			errorMessage := llm.Message{
+				Role: llm.MessageRoleAssistant,
+				Content: []llm.Content{
+					{
+						Type: llm.ContentTypeText,
+						Text: fmt.Sprintf("LLM request failed: %v", err),
+					},
 				},
-			},
+			}
+			if recordErr := l.recordMessage(ctx, errorMessage, llm.Usage{}); recordErr != nil {
+				l.logger.Error("failed to record error message", "error", recordErr)
+			}
+			return fmt.Errorf("LLM request failed: %w", err)
 		}
-		if recordErr := l.recordMessage(ctx, errorMessage, llm.Usage{}); recordErr != nil {
-			l.logger.Error("failed to record error message", "error", recordErr)
-		}
-		return fmt.Errorf("LLM request failed: %w", err)
 	}
 
 	l.logger.Debug("received LLM response", "content_count", len(resp.Content), "stop_reason", resp.StopReason.String(), "usage", resp.Usage.String())

@@ -495,7 +495,7 @@ func (s *Server) getOrCreateConversationManager(ctx context.Context, conversatio
 			return s.recordMessage(ctx, conversationID, message, usage)
 		}
 
-		manager := NewConversationManager(conversationID, s.db, s.logger, s.toolSetConfig, recordMessage)
+		manager := NewConversationManager(conversationID, s.db, s.logger, s.toolSetConfig, recordMessage, s.llmManager, s.defaultModel)
 		if err := manager.Hydrate(ctx); err != nil {
 			return nil, err
 		}
