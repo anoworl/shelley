@@ -497,6 +497,9 @@ function ChatInterface({
 
   // Load messages and set up streaming
   useEffect(() => {
+    // Clear pending user message when conversation changes
+    setPendingUserMessage(null);
+
     if (conversationId) {
       setAgentWorking(false);
       loadMessages();
@@ -504,7 +507,6 @@ function ChatInterface({
     } else {
       // No conversation yet, show empty state
       setMessages([]);
-      setPendingUserMessage(null);
       setContextWindowSize(0);
       setLoading(false);
     }
@@ -621,7 +623,9 @@ function ChatInterface({
           setAgentWorking(streamResponse.agent_working);
         }
 
-        if (typeof streamResponse.context_window_size === "number") {
+        // Only update context window size if provided and non-zero
+        // (gitinfo messages don't include context_window_size)
+        if (typeof streamResponse.context_window_size === "number" && streamResponse.context_window_size > 0) {
           setContextWindowSize(streamResponse.context_window_size);
         }
       } catch (err) {
