@@ -40,3 +40,9 @@ type Migration struct {
 	MigrationName   string     `json:"migration_name"`
 	ExecutedAt      *time.Time `json:"executed_at"`
 }
+
+type Setting struct {
+	ID        int64     `json:"id"`
+	Data      string    `json:"data"`
+	UpdatedAt time.Time `json:"updated_at"`
+}

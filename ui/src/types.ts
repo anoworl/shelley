@@ -124,3 +124,19 @@ export interface DiffComment {
   filePath: string;
   diffId: string;
 }
+
+// Settings types
+export interface GuardianCheckSettings {
+  enabled: boolean;
+  model: string;
+  prompt: string;
+}
+
+export interface GuardianSettings {
+  stream?: GuardianCheckSettings;
+  toolCheck?: GuardianCheckSettings;
+}
+
+export interface Settings {
+  guardian?: GuardianSettings;
+}

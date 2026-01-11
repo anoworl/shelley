@@ -5,6 +5,7 @@ import {
   GitDiffInfo,
   GitFileInfo,
   GitFileDiff,
+  Settings,
 } from "../types";
 
 class ApiService {
@@ -188,6 +189,27 @@ class ApiService {
     });
     if (!response.ok) {
       throw new Error(`Failed to rename conversation: ${response.statusText}`);
+    }
+    return response.json();
+  }
+
+  // Settings APIs
+  async getSettings(): Promise<Settings> {
+    const response = await fetch(`${this.baseUrl}/settings`);
+    if (!response.ok) {
+      throw new Error(`Failed to get settings: ${response.statusText}`);
+    }
+    return response.json();
+  }
+
+  async updateSettings(settings: Settings): Promise<Settings> {
+    const response = await fetch(`${this.baseUrl}/settings`, {
+      method: "POST",
+      headers: this.postHeaders,
+      body: JSON.stringify(settings),
+    });
+    if (!response.ok) {
+      throw new Error(`Failed to update settings: ${response.statusText}`);
     }
     return response.json();
   }
