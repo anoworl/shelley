@@ -31,3 +31,4 @@
 ## Known issues
 
 - None
+- Compact UI layout: smaller padding/margins, left-aligned user messages with AI messages marked by left border, smaller fonts, condensed conversation list with divider lines (files: `ui/src/styles.css`)

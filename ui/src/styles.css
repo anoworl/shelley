@@ -435,7 +435,7 @@ button {
 }
 
 .header-title {
-  font-size: 1rem;
+  font-size: 0.875rem;
   font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -527,7 +527,7 @@ button {
 }
 
 .drawer-title {
-  font-size: 1.125rem;
+  font-size: 0.875rem;
   font-weight: 600;
   margin: 0;
 }
@@ -570,11 +570,11 @@ button {
 
 /* Conversation List */
 .conversation-list {
-  padding: 0.5rem;
+  padding: 0;
 }
 
 .conversation-group {
-  margin-bottom: 0.5rem;
+  margin-bottom: 0;
 }
 
 .conversation-group-header {
@@ -584,27 +584,22 @@ button {
   padding: 0.1rem 0.75rem;
   text-transform: lowercase;
   letter-spacing: 0.02em;
-  border-top: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
-  margin: 0.5rem -0.5rem 0.5rem;
-}
-
-.conversation-group:first-child .conversation-group-header {
-  margin-top: -0.5rem;
   border-top: none;
+  border-bottom: 1px solid var(--border);
+  margin: 0;
 }
 
 .conversation-item {
   width: 100%;
   text-align: left;
-  padding: 0.75rem;
-  border-radius: 0.5rem;
-  margin-bottom: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0;
+  border-bottom: 1px solid var(--border);
   transition: background-color 0.2s;
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: 0.25rem;
+  gap: 0.125rem;
 }
 
 .conversation-item:hover {
@@ -618,8 +613,11 @@ button {
 
 .conversation-item .conversation-title {
   font-weight: 500;
-  font-size: 0.875rem;
-  word-break: break-all;
+  font-size: 0.8125rem;
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .conversation-item .agent-status-indicator {
@@ -657,7 +655,8 @@ button {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  font-size: 0.75rem;
+  font-size: 0.6875rem;
+  line-height: 1.25;
   color: var(--text-tertiary);
   min-width: 0;
 }
@@ -712,15 +711,9 @@ button {
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
-  padding: 1rem;
-  padding-left: max(1rem, env(safe-area-inset-left));
-  padding-right: max(1rem, env(safe-area-inset-right));
-}
-
-.messages-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+  padding: 0.5rem;
+  padding-left: max(0.5rem, env(safe-area-inset-left));
+  padding-right: max(0.5rem, env(safe-area-inset-right));
 }
 
 .message {
@@ -729,15 +722,16 @@ button {
 }
 
 .message-content {
-  padding: 1rem;
+  padding: 0.25rem 0.5rem;
   border-radius: 0.5rem;
   overflow-wrap: break-word;
   word-wrap: break-word;
   min-width: 0;
+  font-size: 0.875rem;
 }
 
 .message-user .message-content {
-  margin-left: auto;
+  margin-right: auto;
   max-width: 80%;
   color: var(--user-message-text);
 }
@@ -747,6 +741,9 @@ button {
   margin-right: auto;
   max-width: 100%;
   color: var(--text-primary);
+  border-left: 2px solid var(--border);
+  padding-left: 0.5rem;
+  border-radius: 0;
 }
 
 .thinking-indicator {
@@ -839,8 +836,9 @@ button {
 
 .tool-result-details {
   border: 1px solid var(--border);
-  border-radius: 0.5rem;
-  margin: 0.5rem 0;
+  border-radius: 0.375rem;
+  margin: 0.25rem 0;
+  font-size: 0.8125rem;
 }
 
 .tool-result-details.error {
@@ -850,13 +848,13 @@ button {
 .tool-result-summary {
   cursor: pointer;
   padding: 0.5rem 0.75rem;
-  border-radius: 0.5rem;
-  transition: background-color 0.2s;
-  background: var(--bg-tertiary);
+  border-radius: 0.375rem;
+  transition: background-color 0.15s;
+  background: var(--bg-secondary);
 }
 
 .tool-result-summary:hover {
-  background: var(--bg-secondary);
+  background: var(--bg-tertiary, var(--bg-secondary));
 }
 
 .tool-result-details.error .tool-result-summary {
@@ -865,7 +863,7 @@ button {
 }
 
 .tool-result-content {
-  padding: 0.75rem;
+  padding: 0.5rem;
   padding-top: 0;
 }
 
@@ -873,8 +871,8 @@ button {
   background: var(--blue-bg);
   border: 1px solid var(--blue-border);
   border-radius: 0.25rem;
-  padding: 0.5rem;
-  margin-top: 0.75rem;
+  padding: 0.25rem 0.5rem;
+  margin-top: 0.5rem;
 }
 
 .tool-result-section.output {
@@ -970,7 +968,7 @@ button {
 .tool {
   background: var(--gray-100);
   border-radius: 0.5rem;
-  margin: 0.5rem 0;
+  margin: 0.25rem 0;
   width: 100%;
 }
 
@@ -982,9 +980,11 @@ button {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.75rem 1rem;
+  padding: 0.25rem 0.5rem;
   cursor: pointer;
   user-select: none;
+  font-size: 0.875rem;
+  line-height: 1.25;
 }
 
 .tool-header:hover {
@@ -1005,7 +1005,7 @@ button {
 }
 
 .tool-emoji {
-  font-size: 1rem;
+  font-size: 0.875rem;
   flex-shrink: 0;
 }
 
@@ -1108,10 +1108,9 @@ button {
 
 /* Bash Tool Component - uses shared tool styles */
 .bash-tool {
-  /* Alias for backwards compatibility */
   background: var(--gray-100);
   border-radius: 0.5rem;
-  margin: 0.5rem 0;
+  margin: 0.25rem 0;
   width: 100%;
 }
 
@@ -1123,9 +1122,11 @@ button {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.75rem 1rem;
+  padding: 0.25rem 0.5rem;
   cursor: pointer;
   user-select: none;
+  font-size: 0.875rem;
+  line-height: 1.25;
 }
 
 .bash-tool-header:hover {
@@ -1146,7 +1147,7 @@ button {
 }
 
 .bash-tool-emoji {
-  font-size: 1rem;
+  font-size: 0.875rem;
   flex-shrink: 0;
 }
 
@@ -1257,7 +1258,7 @@ button {
 .patch-tool {
   background: var(--gray-100);
   border-radius: 0.5rem;
-  margin: 0.5rem 0;
+  margin: 0.25rem 0;
   width: 100%;
 }
 
@@ -1269,9 +1270,11 @@ button {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.75rem 1rem;
+  padding: 0.25rem 0.5rem;
   cursor: pointer;
   user-select: none;
+  font-size: 0.875rem;
+  line-height: 1.25;
 }
 
 .patch-tool-header:hover {
@@ -1292,7 +1295,7 @@ button {
 }
 
 .patch-tool-emoji {
-  font-size: 1rem;
+  font-size: 0.875rem;
   flex-shrink: 0;
 }
 
@@ -1479,7 +1482,7 @@ button {
 .screenshot-tool {
   background: var(--gray-100);
   border-radius: 0.5rem;
-  margin: 0.5rem 0;
+  margin: 0.25rem 0;
   width: 100%;
 }
 
@@ -1491,9 +1494,11 @@ button {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.75rem 1rem;
+  padding: 0.25rem 0.5rem;
   cursor: pointer;
   user-select: none;
+  font-size: 0.875rem;
+  line-height: 1.25;
 }
 
 .screenshot-tool-header:hover {
@@ -1514,7 +1519,7 @@ button {
 }
 
 .screenshot-tool-emoji {
-  font-size: 1rem;
+  font-size: 0.875rem;
   flex-shrink: 0;
 }
 
@@ -2910,10 +2915,6 @@ svg {
     height: auto !important;
     overflow: visible !important;
     position: static !important;
-    background: white !important;
-  }
-
-  .messages-list {
     background: white !important;
   }
 
