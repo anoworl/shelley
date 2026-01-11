@@ -2450,9 +2450,20 @@ svg {
   box-sizing: border-box;
   line-height: 1.3; /* Better line height for multi-line text */
   min-height: 1.75rem; /* Minimum height to accommodate wrapped text */
+  touch-action: manipulation; /* Disable double-tap zoom for faster response */
+  -webkit-tap-highlight-color: transparent; /* Remove tap highlight on iOS */
 }
 
-.status-chip:hover:not(:disabled) {
+/* Only apply hover on devices that support it (not touch) */
+@media (hover: hover) {
+  .status-chip:hover:not(:disabled) {
+    background: var(--bg-secondary);
+    border-color: var(--blue-text);
+  }
+}
+
+/* Active state for touch devices */
+.status-chip:active:not(:disabled) {
   background: var(--bg-secondary);
   border-color: var(--blue-text);
 }

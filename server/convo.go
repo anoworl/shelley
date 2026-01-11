@@ -35,6 +35,8 @@ type ConversationManager struct {
 	logger         *slog.Logger
 	toolSetConfig  claudetool.ToolSetConfig
 	toolSet        *claudetool.ToolSet // created per-conversation when loop starts
+	llmManager     LLMProvider          // for getting fallback LLM service
+	defaultModel   string               // default model to fallback to
 
 	subpub *subpub.SubPub[StreamResponse]
 
@@ -44,7 +46,7 @@ type ConversationManager struct {
 }
 
 // NewConversationManager constructs a manager with dependencies but defers hydration until needed.
-func NewConversationManager(conversationID string, database *db.DB, baseLogger *slog.Logger, toolSetConfig claudetool.ToolSetConfig, recordMessage loop.MessageRecordFunc) *ConversationManager {
+func NewConversationManager(conversationID string, database *db.DB, baseLogger *slog.Logger, toolSetConfig claudetool.ToolSetConfig, recordMessage loop.MessageRecordFunc, llmManager LLMProvider, defaultModel string) *ConversationManager {
 	logger := baseLogger
 	if logger == nil {
 		logger = slog.Default()
@@ -59,6 +61,8 @@ func NewConversationManager(conversationID string, database *db.DB, baseLogger *
 		logger:         logger,
 		toolSetConfig:  toolSetConfig,
 		subpub:         subpub.New[StreamResponse](),
+		llmManager:     llmManager,
+		defaultModel:   defaultModel,
 	}
 }
 
@@ -292,8 +296,15 @@ func (cm *ConversationManager) ensureLoop(service llm.Service, modelID string) e
 	processCtx, cancel := context.WithTimeout(context.Background(), 12*time.Hour)
 	toolSet := claudetool.NewToolSet(processCtx, toolSetConfig)
 
+	// Get fallback LLM service for model errors
+	var fallbackService llm.Service
+	if cm.llmManager != nil && cm.defaultModel != "" && modelID != cm.defaultModel {
+		fallbackService, _ = cm.llmManager.GetService(cm.defaultModel)
+	}
+
 	loopInstance := loop.NewLoop(loop.Config{
 		LLM:           service,
+		FallbackLLM:   fallbackService,
 		History:       history,
 		Tools:         toolSet.Tools(),
 		RecordMessage: recordMessage,
