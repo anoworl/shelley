@@ -24,6 +24,9 @@
 - Group consecutive tool calls into collapsible accordion for cleaner timeline (files: `ui/src/components/ToolGroup.tsx`, `ui/src/components/ChatInterface.tsx`, `ui/src/styles.css`)
 - Compact UI layout: smaller padding/margins, left-aligned user messages with AI messages marked by left border, smaller fonts, condensed conversation list with divider lines (files: `ui/src/styles.css`)
 - Add Markdown rendering for LLM chat messages using markdown-to-jsx (files: `ui/src/components/MarkdownRenderer.tsx`, `ui/src/components/Message.tsx`, `ui/src/styles.css`, `ui/package.json`)
+- Add syntax highlighting with highlight.js for Markdown code blocks and file outputs (files: `ui/src/components/MarkdownRenderer.tsx`, `ui/src/components/HighlightedCode.tsx`, `ui/src/components/BashTool.tsx`, `ui/package.json`, `ui/src/styles.css`)
+- Improve tool component layout: unified header, compact padding, conditional Command section display (files: `ui/src/components/BashTool.tsx`, `ui/src/components/DeploySelfTool.tsx`, `ui/src/components/PatchTool.tsx`, `ui/src/styles.css`)
+- Require Shift+right-click for custom context menu; normal right-click shows system menu (files: `ui/src/components/Message.tsx`)
 
 ## Compatibility / behavior changes
 

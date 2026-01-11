@@ -179,6 +179,10 @@ function Message({ message, onOpenDiffViewer }: MessageProps) {
 
   // Handle right-click (desktop)
   const handleContextMenu = (e: React.MouseEvent) => {
+    // Only show custom menu with Shift + right-click
+    if (!e.shiftKey) {
+      return; // Let system menu show
+    }
     e.preventDefault();
     setContextMenu({ x: e.clientX, y: e.clientY });
   };
