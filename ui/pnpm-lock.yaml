@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      markdown-to-jsx:
+        specifier: ^9.5.5
+        version: 9.5.5(react@18.3.1)
       monaco-editor:
         specifier: ^0.44.0
         version: 0.44.0
@@ -1054,6 +1057,24 @@ packages:
   loose-envify@1.4.0:
     resolution: {integrity: sha512-lyuxPGr/Wfhrlem2CL/UcnUc1zcqKAImBDzukY7Y5F/yQiNdko6+fRLevlw1HgMySw7f611UIY408EtxRSoK3Q==}
     hasBin: true
+
+  markdown-to-jsx@9.5.5:
+    resolution: {integrity: sha512-HgbtKV8TDvYNO/QzlOp3OcSweKYpYmzf8zM15vFfeigSTyoE9wcgs/3Qmx+I8zipfOsTWOTWaB14qRxZImSb7g==}
+    engines: {node: '>= 18'}
+    peerDependencies:
+      react: '>= 16.0.0'
+      react-native: '*'
+      solid-js: '>=1.0.0'
+      vue: '>=3.0.0'
+    peerDependenciesMeta:
+      react:
+        optional: true
+      react-native:
+        optional: true
+      solid-js:
+        optional: true
+      vue:
+        optional: true
 
   math-intrinsics@1.1.0:
     resolution: {integrity: sha512-/IXtbwEk5HTPyEwyKX6hGkYXxM9nbj64B+ilVJnC/R6B0pH5G4V3b0pVbL7DBj4tkhBAppbQUlf6F6Xl9LHu1g==}
@@ -2493,6 +2514,10 @@ snapshots:
   loose-envify@1.4.0:
     dependencies:
       js-tokens: 4.0.0
+
+  markdown-to-jsx@9.5.5(react@18.3.1):
+    optionalDependencies:
+      react: 18.3.1
 
   math-intrinsics@1.1.0: {}
 
