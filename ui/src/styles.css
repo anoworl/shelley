@@ -430,7 +430,7 @@ button {
   align-items: center;
   gap: 0.75rem;
   min-width: 0; /* Allow shrinking below content size */
-  flex: 1 1 auto;
+  flex: 0 1 auto; /* Don't grow, can shrink */
   overflow: hidden;
 }
 
@@ -449,6 +449,37 @@ button {
   align-items: center;
   gap: 0.5rem;
   flex-shrink: 0; /* Never shrink the actions */
+}
+
+.header-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  margin-right: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  flex: 1 1 auto; /* Take remaining space, can shrink */
+  min-width: 0; /* Allow shrinking */
+  overflow: hidden;
+}
+
+.header-info-row {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  max-width: 100%;
+}
+
+.header-info-label {
+  opacity: 0.6;
+  flex-shrink: 0;
+}
+
+.header-info-value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
 }
 
 /* Drawer/Sidebar */
@@ -2697,8 +2728,40 @@ svg {
 /* Mobile optimizations for tighter spacing */
 @media (max-width: 767px) {
   .header {
-    padding: 0.375rem 0.75rem;
-    padding-top: calc(0.375rem + env(safe-area-inset-top, 0px));
+    padding: 0.125rem 0.5rem;
+    padding-top: calc(0.125rem + env(safe-area-inset-top, 0px));
+    gap: 0.25rem;
+  }
+
+  .header-info {
+    display: none;
+  }
+
+  .header-title {
+    font-size: 0.8125rem;
+  }
+
+  .header-left {
+    gap: 0.375rem;
+  }
+
+  .header-actions {
+    gap: 0.25rem;
+  }
+
+  .header .btn-icon,
+  .header .btn-new,
+  .header .btn-vscode {
+    width: 1.5rem;
+    height: 1.5rem;
+    padding: 0;
+  }
+
+  .header .btn-icon svg,
+  .header .btn-new svg,
+  .header .btn-vscode svg {
+    width: 0.875rem;
+    height: 0.875rem;
   }
 
   .status-bar {
