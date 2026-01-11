@@ -142,12 +142,20 @@ interface IntermediateItem {
   display?: unknown;
 }
 
+// Segment of text with its following tools (for merged display)
+interface MessageSegment {
+  text: string;
+  followingTools?: ToolCallData[];
+}
+
 // Final coalesced item: message with optional following tools
 interface CoalescedItem {
   type: "message";
   message: Message;
   // Tools that follow this message (merged into the message)
   followingTools?: ToolCallData[];
+  // When showTools=false, consecutive LLM messages are merged into segments
+  mergedSegments?: MessageSegment[];
 }
 
 interface CoalescedToolCallProps {
@@ -996,8 +1004,73 @@ function ChatInterface({
       }
     }
 
+    // When showTools is false, merge consecutive LLM messages into segments
+    if (!showTools) {
+      const mergedItems: CoalescedItem[] = [];
+      let i = 0;
+      while (i < finalItems.length) {
+        const item = finalItems[i];
+        // Only merge agent/tool messages (not user, gitinfo, etc.)
+        if (item.message.type === "agent" || item.message.type === "tool") {
+          // Extract text from this message's llm_data
+          const getTextFromMessage = (msg: Message): string => {
+            if (!msg.llm_data) return "";
+            try {
+              const llmData = typeof msg.llm_data === "string" ? JSON.parse(msg.llm_data) : msg.llm_data;
+              if (llmData?.Content && Array.isArray(llmData.Content)) {
+                return llmData.Content
+                  .filter((c: LLMContent) => c.Type === 2) // text type
+                  .map((c: LLMContent) => c.Text || "")
+                  .join("")
+                  .trim();
+              }
+            } catch { /* ignore */ }
+            return "";
+          };
+
+          // Collect consecutive LLM messages
+          const segments: MessageSegment[] = [];
+          let j = i;
+          while (j < finalItems.length) {
+            const current = finalItems[j];
+            // Stop if we hit a user message or gitinfo
+            if (current.message.type === "user" || current.message.type === "gitinfo") break;
+            
+            const text = getTextFromMessage(current.message);
+            if (text || current.followingTools?.length) {
+              segments.push({
+                text,
+                followingTools: current.followingTools,
+              });
+            }
+            j++;
+          }
+
+          if (segments.length > 1) {
+            // Merge all segments into the first message
+            mergedItems.push({
+              type: "message",
+              message: item.message,
+              followingTools: item.followingTools,
+              mergedSegments: segments,
+            });
+          } else {
+            // Single message, no merging needed
+            mergedItems.push(item);
+            j = i + 1; // Reset j since we didn't actually merge
+          }
+          i = j;
+        } else {
+          // User message or other type, keep as-is
+          mergedItems.push(item);
+          i++;
+        }
+      }
+      return mergedItems;
+    }
+
     return finalItems;
-  }, [messages, pendingUserMessage]);
+  }, [messages, pendingUserMessage, showTools]);
 
   // Scroll to bottom - must be after coalescedItems is defined
   const scrollToBottom = useCallback(() => {
@@ -1024,6 +1097,7 @@ function ChatInterface({
           message={item.message}
           followingTools={item.followingTools}
           showTools={showTools}
+          mergedSegments={item.mergedSegments}
           onOpenDiffViewer={(commit) => {
             setDiffViewerInitialCommit(commit);
             setShowDiffViewer(true);

@@ -179,6 +179,8 @@ function MarkdownRenderer({ children, suffix }: MarkdownRendererProps) {
           },
         },
         forceBlock: true,
+        // Don't wrap in a div, render children directly
+        wrapper: React.Fragment,
       }}
     >
       {children}

@@ -25,10 +25,18 @@ interface ToolDisplay {
   display: unknown;
 }
 
+// Segment of text with its following tools (for merged display)
+interface MessageSegment {
+  text: string;
+  followingTools?: ToolCallData[];
+}
+
 interface MessageProps {
   message: MessageType;
   followingTools?: ToolCallData[];
   showTools?: boolean;
+  // When showTools=false, consecutive LLM messages are merged into segments
+  mergedSegments?: MessageSegment[];
   onOpenDiffViewer?: (commit: string) => void;
 }
 
@@ -78,7 +86,7 @@ function ToolIndicator({ tools, expanded, onClick }: { tools: ToolCallData[]; ex
   );
 }
 
-function Message({ message, followingTools, showTools = true, onOpenDiffViewer }: MessageProps) {
+function Message({ message, followingTools, showTools = true, mergedSegments, onOpenDiffViewer }: MessageProps) {
   // All hooks must be called before any early returns (React Rules of Hooks)
   const [localToolsExpanded, setLocalToolsExpanded] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
@@ -825,6 +833,8 @@ function Message({ message, followingTools, showTools = true, onOpenDiffViewer }
   const getMessageClasses = () => {
     const toolsHidden = !showTools && !localToolsExpanded;
     const hiddenClass = toolsHidden ? " tools-hidden" : "";
+    // When showTools is false, always apply compact paragraph style (even when expanded)
+    const compactClass = !showTools ? " tools-compact" : "";
     if (isUser) {
       return "message message-user";
     }
@@ -832,9 +842,9 @@ function Message({ message, followingTools, showTools = true, onOpenDiffViewer }
       return "message message-error";
     }
     if (isTool) {
-      return "message message-tool" + hiddenClass;
+      return "message message-tool" + hiddenClass + compactClass;
     }
-    return "message message-agent" + hiddenClass;
+    return "message message-agent" + hiddenClass + compactClass;
   };
 
   // Special rendering for error messages
@@ -956,6 +966,68 @@ function Message({ message, followingTools, showTools = true, onOpenDiffViewer }
     meaningfulContent.length > 0
       ? meaningfulContent
       : llmMessage?.Content?.filter((c) => c.Type === 2 && c.Text?.includes("[Operation")) || [];
+
+  // When mergedSegments is provided, render all segments with proper markdown structure
+  if (mergedSegments && mergedSegments.length > 0) {
+    // Collect all tools from all segments for the expanded view
+    const allTools = mergedSegments.flatMap(seg => seg.followingTools || []);
+    
+    return (
+      <>
+        <div
+          ref={messageRef}
+          className={getMessageClasses()}
+          onContextMenu={handleContextMenu}
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+          onTouchMove={handleTouchMove}
+          style={{ position: "relative" }}
+          data-testid="message"
+          role="article"
+        >
+          <div className="message-content" data-testid="message-content">
+            <div className="markdown-content">
+              {mergedSegments.map((segment, segIndex) => {
+                const hasTools = segment.followingTools && segment.followingTools.length > 0;
+                const suffix = hasTools ? (
+                  <ToolIndicator
+                    tools={segment.followingTools!}
+                    expanded={localToolsExpanded}
+                    onClick={() => setLocalToolsExpanded(!localToolsExpanded)}
+                  />
+                ) : undefined;
+                
+                return (
+                  <MarkdownRenderer key={segIndex} suffix={suffix}>
+                    {segment.text}
+                  </MarkdownRenderer>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+        {/* Show all tools when expanded */}
+        {allTools.length > 0 && localToolsExpanded && (
+          <ToolGroup tools={allTools} defaultExpanded={localToolsExpanded} />
+        )}
+        {contextMenu && contextMenuItems.length > 0 && (
+          <ContextMenu
+            x={contextMenu.x}
+            y={contextMenu.y}
+            onClose={() => setContextMenu(null)}
+            items={contextMenuItems}
+          />
+        )}
+        {showUsageModal && usage && (
+          <UsageDetailModal
+            usage={usage}
+            durationMs={durationMs}
+            onClose={() => setShowUsageModal(false)}
+          />
+        )}
+      </>
+    );
+  }
 
   return (
     <>

@@ -452,7 +452,6 @@ button {
   transition: opacity 0.15s;
   flex-shrink: 0;
   opacity: 0.4;
-  margin-bottom: 0.5em;
   user-select: none;
 }
 
@@ -470,6 +469,7 @@ button {
   gap: 0.375rem;
   font-size: 0.75rem;
   font-family: var(--font-mono);
+  padding-right: 0.375rem;
   height: 1.25rem;
   line-height: 1.25rem;
 }
@@ -824,7 +824,8 @@ button {
   border-radius: 0;
 }
 
-.message-tool.tools-hidden p {
+.message-tool.tools-hidden p,
+.message-tool.tools-compact p {
   display: contents;
 }
 
@@ -3930,7 +3931,8 @@ svg {
   line-height: 1.6;
 }
 
-.message-agent.tools-hidden p {
+.message-agent.tools-hidden p,
+.message-agent.tools-compact p {
   display: contents;
 }
 

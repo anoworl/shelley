@@ -113,6 +113,10 @@ func (s *PredictableService) Do(ctx context.Context, req *llm.Request) (*llm.Res
 		// Return a response with all tool types for testing
 		return s.makeToolSmorgasbordResponse(inputTokens), nil
 
+	case "text and tools":
+		// Return a response with alternating text and tool calls (5 pairs)
+		return s.makeTextAndToolsResponse(inputTokens), nil
+
 	case "echo: foo":
 		return s.makeResponse("foo", inputTokens), nil
 
@@ -582,6 +586,54 @@ func (s *PredictableService) makeToolSmorgasbordResponse(inputTokens uint64) *ll
 			InputTokens:  inputTokens,
 			OutputTokens: 200,
 			CostUSD:      0.01,
+		},
+	}
+}
+
+// makeTextAndToolsResponse creates a response with alternating text and bash tool calls
+// Text1 -> sleep 1 -> Text2 -> sleep 1 -> Text3 -> sleep 1 -> Text4 -> sleep 1 -> Text5
+func (s *PredictableService) makeTextAndToolsResponse(inputTokens uint64) *llm.Response {
+	baseNano := time.Now().UnixNano()
+	content := []llm.Content{}
+
+	texts := []string{
+		"First paragraph of text.",
+		"Second paragraph after first sleep.",
+		"Third paragraph after second sleep.",
+		"Fourth paragraph after third sleep.",
+		"Fifth and final paragraph.",
+	}
+
+	for i, text := range texts {
+		// Add text content
+		content = append(content, llm.Content{
+			Type: llm.ContentTypeText,
+			Text: text,
+		})
+
+		// Add sleep tool after each text except the last
+		if i < len(texts)-1 {
+			bashInput, _ := json.Marshal(map[string]string{"command": "sleep 1"})
+			content = append(content, llm.Content{
+				ID:        fmt.Sprintf("tool_bash_%d_%d", baseNano%1000, i),
+				Type:      llm.ContentTypeToolUse,
+				ToolName:  "bash",
+				ToolInput: json.RawMessage(bashInput),
+			})
+		}
+	}
+
+	return &llm.Response{
+		ID:         fmt.Sprintf("pred-texttools-%d", baseNano),
+		Type:       "message",
+		Role:       llm.MessageRoleAssistant,
+		Model:      "predictable-v1",
+		Content:    content,
+		StopReason: llm.StopReasonToolUse,
+		Usage: llm.Usage{
+			InputTokens:  inputTokens,
+			OutputTokens: 100,
+			CostUSD:      0.005,
 		},
 	}
 }
