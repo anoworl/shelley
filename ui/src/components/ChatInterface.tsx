@@ -454,7 +454,7 @@ function ChatInterface({
     }
   }, [mostRecentCwd, cwdInitialized]);
   const [cwdError, setCwdError] = useState<string | null>(null);
-  const [editingModel, setEditingModel] = useState(false);
+
   const [showDirectoryPicker, setShowDirectoryPicker] = useState(false);
   // Settings modal removed - configuration moved to status bar for empty conversations
   const [showOverflowMenu, setShowOverflowMenu] = useState(false);
@@ -1386,35 +1386,19 @@ function ChatInterface({
                 title="AI model to use for this conversation"
               >
                 <span className="status-field-label">Model:</span>
-                {editingModel ? (
-                  <select
-                    id="model-select-status"
-                    value={selectedModel}
-                    onChange={(e) => setSelectedModel(e.target.value)}
-                    onBlur={() => setEditingModel(false)}
-                    onClick={(e) => e.stopPropagation()}
-                    disabled={sending}
-                    className="status-select"
-                    autoFocus
-                  >
-                    {models.map((model) => (
-                      <option key={model.id} value={model.id} disabled={!model.ready}>
-                        {model.id} {!model.ready ? "(not ready)" : ""}
-                      </option>
-                    ))}
-                  </select>
-                ) : (
-                  <button
-                    className="status-chip"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setEditingModel(true);
-                    }}
-                    disabled={sending}
-                  >
-                    {selectedModel}
-                  </button>
-                )}
+                <select
+                  id="model-select-status"
+                  value={selectedModel}
+                  onChange={(e) => setSelectedModel(e.target.value)}
+                  disabled={sending}
+                  className="status-select"
+                >
+                  {models.map((model) => (
+                    <option key={model.id} value={model.id} disabled={!model.ready}>
+                      {model.id} {!model.ready ? "(not ready)" : ""}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               {/* CWD indicator - far right */}
