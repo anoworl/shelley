@@ -136,6 +136,11 @@ function ToolGroup({ tools, defaultExpanded = false }: ToolGroupProps) {
     );
   };
 
+  // Single tool - render directly without group wrapper
+  if (tools.length === 1) {
+    return renderTool(tools[0], 0);
+  }
+
   return (
     <div className="message message-tool-group" data-testid="tool-group">
       <div className="message-content">
