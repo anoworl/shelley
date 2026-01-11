@@ -41,9 +41,9 @@ func (s *Server) handleRead(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// Clean and enforce prefix restriction
-	clean := p
+	clean := filepath.Clean(p)
 	// Do not resolve symlinks here; enforce string prefix restriction only
-	if !(strings.HasPrefix(clean, browse.ScreenshotDir+"/")) {
+	if !strings.HasPrefix(clean, browse.ScreenshotDir+string(os.PathSeparator)) {
 		http.Error(w, "path not allowed", http.StatusForbidden)
 		return
 	}
