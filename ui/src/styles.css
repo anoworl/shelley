@@ -2657,6 +2657,26 @@ svg {
   width: 100%;
 }
 
+/* Clickable status bar areas */
+.status-bar-clickable {
+  cursor: pointer;
+}
+
+/* Extend tap area on mobile */
+@media (max-width: 767px) {
+  .status-bar-clickable {
+    position: relative;
+  }
+  .status-bar-clickable::before {
+    content: '';
+    position: absolute;
+    top: -1rem;
+    left: 0;
+    right: 0;
+    bottom: 0;
+  }
+}
+
 .status-working-group {
   display: flex;
   align-items: center;
@@ -2708,6 +2728,21 @@ svg {
   }
 }
 
+/* Extend tap area on mobile */
+@media (max-width: 767px) {
+  .status-stop-button {
+    position: relative;
+  }
+  .status-stop-button::before {
+    content: '';
+    position: absolute;
+    top: -0.75rem;
+    left: -0.5rem;
+    right: -0.5rem;
+    bottom: -0.25rem;
+  }
+}
+
 .context-usage-bar {
   width: 60px;
   height: 6px;
@@ -2728,9 +2763,13 @@ svg {
 /* Mobile optimizations for tighter spacing */
 @media (max-width: 767px) {
   .header {
-    padding: 0.125rem 0.5rem;
-    padding-top: calc(0.125rem + env(safe-area-inset-top, 0px));
+    padding: 0 0.5rem;
+    padding-top: env(safe-area-inset-top, 0px);
     gap: 0.25rem;
+    height: 1.5rem;
+    min-height: 0;
+    overflow: visible;
+    box-sizing: content-box;
   }
 
   .header-info {
@@ -2738,30 +2777,45 @@ svg {
   }
 
   .header-title {
-    font-size: 0.8125rem;
+    font-size: 0.75rem;
+    font-weight: 400;
   }
 
   .header-left {
-    gap: 0.375rem;
-  }
-
-  .header-actions {
     gap: 0.25rem;
   }
 
+  .header-actions {
+    gap: 0.375rem;
+  }
+
   .header .btn-icon,
-  .header .btn-new,
-  .header .btn-vscode {
-    width: 1.5rem;
-    height: 1.5rem;
+  .header .btn-new {
+    width: 1rem;
+    height: 1rem;
     padding: 0;
+    border-radius: 0.25rem;
+    position: relative;
+  }
+
+  .header .btn-icon::before,
+  .header .btn-new::before {
+    content: '';
+    position: absolute;
+    top: -0.5rem;
+    left: -0.5rem;
+    right: -0.5rem;
+    bottom: -0.5rem;
   }
 
   .header .btn-icon svg,
-  .header .btn-new svg,
-  .header .btn-vscode svg {
-    width: 0.875rem;
-    height: 0.875rem;
+  .header .btn-new svg {
+    width: 0.625rem;
+    height: 0.625rem;
+  }
+
+  .header .btn-vscode {
+    display: none;
   }
 
   .status-bar {
