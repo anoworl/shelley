@@ -463,18 +463,47 @@ function ConversationDrawer({
         {/* Header */}
         <div className="drawer-header">
           <div className="drawer-title-row">
-            {!showArchived && (
-              <a
-                href={`https://${hostname}/`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="drawer-hostname"
-                title={`Open https://${hostname}/`}
+            <a
+              href={`https://${hostname}/`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="drawer-hostname"
+              title={`Open https://${hostname}/`}
+            >
+              {hostname.split('.')[0]}
+            </a>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+              <h2 className="drawer-title">{showArchived ? "Archived" : "Conversations"}</h2>
+              <button
+                onClick={() => setShowArchived(!showArchived)}
+                className="btn-icon-sm"
+                title={showArchived ? "Back to Conversations" : "View Archived"}
+                aria-label={showArchived ? "Back to Conversations" : "View Archived"}
               >
-                {hostname.split('.')[0]}
-              </a>
-            )}
-            <h2 className="drawer-title">{showArchived ? "Archived" : "Conversations"}</h2>
+                <svg
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  style={{ width: "1rem", height: "1rem" }}
+                >
+                  {showArchived ? (
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M11 15l-3-3m0 0l3-3m-3 3h8M3 12a9 9 0 1118 0 9 9 0 01-18 0z"
+                    />
+                  ) : (
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"
+                    />
+                  )}
+                </svg>
+              </button>
+            </div>
           </div>
           <div className="drawer-header-actions">
             {/* New conversation button - mobile only */}
@@ -540,44 +569,7 @@ function ConversationDrawer({
           )}
         </div>
 
-        {/* Footer with archived toggle */}
-        <div className="drawer-footer">
-          <button
-            onClick={() => setShowArchived(!showArchived)}
-            className="btn-secondary"
-            style={{
-              width: "100%",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "0.5rem",
-            }}
-          >
-            <svg
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              style={{ width: "1rem", height: "1rem" }}
-            >
-              {showArchived ? (
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M11 15l-3-3m0 0l3-3m-3 3h8M3 12a9 9 0 1118 0 9 9 0 01-18 0z"
-                />
-              ) : (
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"
-                />
-              )}
-            </svg>
-            <span>{showArchived ? "Back to Conversations" : "View Archived"}</span>
-          </button>
-        </div>
+
       </div>
     </>
   );
