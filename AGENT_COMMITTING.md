@@ -137,13 +137,34 @@ When making changes unique to this fork, update `FORK_NOTES.md` to track:
 
 ## Workflow Summary
 
-1. Make changes on a feature branch
-2. **Ask user permission before committing**
-3. Write commit message following the format above
-4. Update `FORK_NOTES.md` if needed
-5. Push to `origin` (this fork only!)
-6. Create PR to `main` branch of this fork
-7. **Never push to or create PR against upstream**
+1. **Create feature branch BEFORE committing** (branch off from main)
+2. Make changes on the feature branch
+3. **Ask user permission before committing**
+4. Write commit message following the format above
+5. Update `FORK_NOTES.md` if needed
+6. Push the feature branch to `origin` (this fork only!)
+7. Create PR to `main` branch of this fork
+8. **Never push to or create PR against upstream**
+
+### ⚠️ NEVER Commit Directly to Main
+
+**Always create a feature branch before making commits.** If you accidentally commit to main:
+
+1. The PR will show as "merged" immediately when you create it
+2. Force-pushing main to fix this causes confusion
+3. You'll need to create a new PR
+
+```bash
+# Correct workflow
+git checkout main
+git pull origin main
+git checkout -b feature-name   # Create branch FIRST
+# ... make changes ...
+git add <files>
+git commit -m "scope: description"
+git push -u origin feature-name
+gh pr create ...
+```
 
 ## Atomic Commits
 

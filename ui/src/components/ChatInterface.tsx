@@ -957,6 +957,18 @@ function ChatInterface({
           </h1>
         </div>
 
+        {/* Model/Dir info */}
+        <div className="header-info">
+          <div className="header-info-row">
+            <span className="header-info-label">Model:</span>
+            <span className="header-info-value">{selectedModel}</span>
+          </div>
+          <div className="header-info-row">
+            <span className="header-info-label">Dir:</span>
+            <span className="header-info-value">{currentConversation?.cwd || selectedCwd || "/"}</span>
+          </div>
+        </div>
+
         <div className="header-actions">
           {/* VSCode open button */}
           {buildVSCodeFolderUrl(currentConversation?.cwd || selectedCwd) && (

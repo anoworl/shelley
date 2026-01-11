@@ -430,7 +430,7 @@ button {
   align-items: center;
   gap: 0.75rem;
   min-width: 0; /* Allow shrinking below content size */
-  flex: 1 1 auto;
+  flex: 0 1 auto; /* Don't grow, can shrink */
   overflow: hidden;
 }
 
@@ -449,6 +449,37 @@ button {
   align-items: center;
   gap: 0.5rem;
   flex-shrink: 0; /* Never shrink the actions */
+}
+
+.header-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  margin-right: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  flex: 1 1 auto; /* Take remaining space, can shrink */
+  min-width: 0; /* Allow shrinking */
+  overflow: hidden;
+}
+
+.header-info-row {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  max-width: 100%;
+}
+
+.header-info-label {
+  opacity: 0.6;
+  flex-shrink: 0;
+}
+
+.header-info-value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
 }
 
 /* Drawer/Sidebar */
@@ -2626,6 +2657,26 @@ svg {
   width: 100%;
 }
 
+/* Clickable status bar areas */
+.status-bar-clickable {
+  cursor: pointer;
+}
+
+/* Extend tap area on mobile */
+@media (max-width: 767px) {
+  .status-bar-clickable {
+    position: relative;
+  }
+  .status-bar-clickable::before {
+    content: '';
+    position: absolute;
+    top: -1rem;
+    left: 0;
+    right: 0;
+    bottom: 0;
+  }
+}
+
 .status-working-group {
   display: flex;
   align-items: center;
@@ -2677,6 +2728,21 @@ svg {
   }
 }
 
+/* Extend tap area on mobile */
+@media (max-width: 767px) {
+  .status-stop-button {
+    position: relative;
+  }
+  .status-stop-button::before {
+    content: '';
+    position: absolute;
+    top: -0.75rem;
+    left: -0.5rem;
+    right: -0.5rem;
+    bottom: -0.25rem;
+  }
+}
+
 .context-usage-bar {
   width: 60px;
   height: 6px;
@@ -2697,8 +2763,59 @@ svg {
 /* Mobile optimizations for tighter spacing */
 @media (max-width: 767px) {
   .header {
-    padding: 0.375rem 0.75rem;
-    padding-top: calc(0.375rem + env(safe-area-inset-top, 0px));
+    padding: 0 0.5rem;
+    padding-top: env(safe-area-inset-top, 0px);
+    gap: 0.25rem;
+    height: 1.5rem;
+    min-height: 0;
+    overflow: visible;
+    box-sizing: content-box;
+  }
+
+  .header-info {
+    display: none;
+  }
+
+  .header-title {
+    font-size: 0.75rem;
+    font-weight: 400;
+  }
+
+  .header-left {
+    gap: 0.25rem;
+  }
+
+  .header-actions {
+    gap: 0.375rem;
+  }
+
+  .header .btn-icon,
+  .header .btn-new {
+    width: 1rem;
+    height: 1rem;
+    padding: 0;
+    border-radius: 0.25rem;
+    position: relative;
+  }
+
+  .header .btn-icon::before,
+  .header .btn-new::before {
+    content: '';
+    position: absolute;
+    top: -0.5rem;
+    left: -0.5rem;
+    right: -0.5rem;
+    bottom: -0.5rem;
+  }
+
+  .header .btn-icon svg,
+  .header .btn-new svg {
+    width: 0.625rem;
+    height: 0.625rem;
+  }
+
+  .header .btn-vscode {
+    display: none;
   }
 
   .status-bar {
