@@ -14,18 +14,44 @@ interface MarkdownRendererProps {
  * - Safe HTML rendering (no dangerouslySetInnerHTML)
  * - Links open in new tab
  */
+/**
+ * Sanitize URL to prevent javascript: and data: XSS attacks.
+ * Only allows http:, https:, mailto:, and relative URLs.
+ */
+function sanitizeUrl(url: string | undefined): string {
+  if (!url) return "";
+  const trimmed = url.trim().toLowerCase();
+  if (
+    trimmed.startsWith("javascript:") ||
+    trimmed.startsWith("data:") ||
+    trimmed.startsWith("vbscript:")
+  ) {
+    return "";
+  }
+  return url;
+}
+
 function MarkdownRenderer({ children }: MarkdownRendererProps) {
   return (
     <Markdown
       options={{
+        // Disable raw HTML parsing to prevent XSS from LLM output
+        disableParsingRawHTML: true,
         overrides: {
-          // Links open in new tab
+          // Links open in new tab with URL sanitization
           a: {
-            component: ({ children, ...props }) => (
-              <a {...props} target="_blank" rel="noopener noreferrer" className="text-link">
-                {children}
-              </a>
-            ),
+            component: ({ children, href, ...props }) => {
+              const safeHref = sanitizeUrl(href);
+              if (!safeHref) {
+                // Render as plain text if URL is unsafe
+                return <span>{children}</span>;
+              }
+              return (
+                <a {...props} href={safeHref} target="_blank" rel="noopener noreferrer" className="text-link">
+                  {children}
+                </a>
+              );
+            },
           },
           // Code blocks with styling
           pre: {
