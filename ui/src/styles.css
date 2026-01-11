@@ -824,6 +824,10 @@ button {
   border-radius: 0;
 }
 
+.message-tool.tools-hidden p {
+  display: contents;
+}
+
 .thinking-indicator {
   display: inline-flex;
   align-items: center;
@@ -3926,7 +3930,7 @@ svg {
   line-height: 1.6;
 }
 
-.message-agent .markdown-content {
+.message-agent.tools-hidden p {
   display: contents;
 }
 
