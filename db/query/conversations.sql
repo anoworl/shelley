@@ -17,6 +17,11 @@ WHERE archived = FALSE
 ORDER BY updated_at DESC
 LIMIT ? OFFSET ?;
 
+-- name: ListAllActiveConversations :many
+SELECT * FROM conversations
+WHERE archived = FALSE
+ORDER BY updated_at DESC;
+
 -- name: ListArchivedConversations :many
 SELECT * FROM conversations
 WHERE archived = TRUE

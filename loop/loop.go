@@ -51,6 +51,7 @@ type Loop struct {
 	onGitStateChange GitStateChangeFunc
 	getWorkingDir    func() string
 	lastGitState     *gitstate.GitState
+	resumeRequested  bool
 }
 
 // NewLoop creates a new Loop instance with the provided configuration
@@ -88,6 +89,16 @@ func (l *Loop) QueueUserMessage(message llm.Message) {
 	defer l.mu.Unlock()
 	l.messageQueue = append(l.messageQueue, message)
 	l.logger.Debug("queued user message", "content_count", len(message.Content))
+}
+
+// TriggerResume signals the loop to process a resumed conversation.
+// This is used after server restart to continue interrupted conversations
+// without a new user message.
+func (l *Loop) TriggerResume() {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	l.resumeRequested = true
+	l.logger.Info("resume requested for interrupted conversation")
 }
 
 // GetUsage returns the total usage accumulated by this loop
@@ -132,9 +143,11 @@ func (l *Loop) Go(ctx context.Context) error {
 		default:
 		}
 
-		// Process any queued messages
+		// Process any queued messages or resume requests
 		l.mu.Lock()
 		hasQueuedMessages := len(l.messageQueue) > 0
+		resumeRequested := l.resumeRequested
+		l.resumeRequested = false
 		if hasQueuedMessages {
 			// Add queued messages to history (they are already recorded to DB by ConversationManager)
 			for _, msg := range l.messageQueue {
@@ -144,15 +157,23 @@ func (l *Loop) Go(ctx context.Context) error {
 		}
 		l.mu.Unlock()
 
-		if hasQueuedMessages {
+		if hasQueuedMessages || resumeRequested {
 			// Send request to LLM
-			l.logger.Debug("processing queued messages", "count", 1)
+			if resumeRequested {
+				l.logger.Info("resuming interrupted conversation")
+			} else {
+				l.logger.Debug("processing queued messages", "count", 1)
+			}
 			if err := l.processLLMRequest(ctx); err != nil {
 				l.logger.Error("failed to process LLM request", "error", err)
 				time.Sleep(time.Second) // Wait before retrying
 				continue
 			}
-			l.logger.Debug("finished processing queued messages")
+			if resumeRequested {
+				l.logger.Info("finished resuming conversation")
+			} else {
+				l.logger.Debug("finished processing queued messages")
+			}
 		} else {
 			// No queued messages, wait a bit
 			select {

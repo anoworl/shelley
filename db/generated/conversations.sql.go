@@ -158,6 +158,48 @@ func (q *Queries) GetConversationBySlug(ctx context.Context, slug *string) (Conv
 	return i, err
 }
 
+const listAllActiveConversations = `-- name: ListAllActiveConversations :many
+SELECT conversation_id, slug, user_initiated, created_at, updated_at, cwd, archived, agent_working, context_window_size, agent_error, github_urls, git_origin FROM conversations
+WHERE archived = FALSE
+ORDER BY updated_at DESC
+`
+
+func (q *Queries) ListAllActiveConversations(ctx context.Context) ([]Conversation, error) {
+	rows, err := q.db.QueryContext(ctx, listAllActiveConversations)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Conversation{}
+	for rows.Next() {
+		var i Conversation
+		if err := rows.Scan(
+			&i.ConversationID,
+			&i.Slug,
+			&i.UserInitiated,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.Cwd,
+			&i.Archived,
+			&i.AgentWorking,
+			&i.ContextWindowSize,
+			&i.AgentError,
+			&i.GithubUrls,
+			&i.GitOrigin,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listArchivedConversations = `-- name: ListArchivedConversations :many
 SELECT conversation_id, slug, user_initiated, created_at, updated_at, cwd, archived, agent_working, context_window_size, agent_error, github_urls, git_origin FROM conversations
 WHERE archived = TRUE

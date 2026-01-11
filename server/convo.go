@@ -358,6 +358,34 @@ func (cm *ConversationManager) stopLoop() {
 	}
 }
 
+// Resume restarts an interrupted conversation after server restart.
+// It hydrates the conversation from DB, creates a new loop, and triggers
+// the LLM to continue processing.
+func (cm *ConversationManager) Resume(ctx context.Context, service llm.Service, modelID string) error {
+	if service == nil {
+		return fmt.Errorf("llm service is required")
+	}
+
+	if err := cm.Hydrate(ctx); err != nil {
+		return err
+	}
+
+	if err := cm.ensureLoop(service, modelID); err != nil {
+		return err
+	}
+
+	cm.mu.Lock()
+	loopInstance := cm.loop
+	cm.mu.Unlock()
+
+	if loopInstance == nil {
+		return fmt.Errorf("failed to create loop for resume")
+	}
+
+	loopInstance.TriggerResume()
+	return nil
+}
+
 // CancelConversation cancels the current conversation loop and records a cancelled tool result if a tool was in progress
 func (cm *ConversationManager) CancelConversation(ctx context.Context) error {
 	cm.mu.Lock()
