@@ -681,6 +681,7 @@ function ChatInterface({
     const optimisticMessage: Message = {
       message_id: `pending-${Date.now()}`,
       conversation_id: conversationId || "",
+      sequence_id: -1, // Placeholder for optimistic message
       type: "user",
       user_data: null,
       llm_data: JSON.stringify({
