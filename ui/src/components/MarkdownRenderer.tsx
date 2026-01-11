@@ -123,8 +123,11 @@ function MarkdownRenderer({ children }: MarkdownRendererProps) {
                   highlighted = hljs.highlightAuto(codeText).value;
                 }
               } catch {
-                // Fallback to plain text if highlighting fails
-                highlighted = codeText;
+                // Fallback to escaped plain text if highlighting fails
+                highlighted = codeText
+                  .replace(/&/g, "&amp;")
+                  .replace(/</g, "&lt;")
+                  .replace(/>/g, "&gt;");
               }
               
               return (

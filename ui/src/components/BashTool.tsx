@@ -46,13 +46,15 @@ function BashTool({ toolInput, isRunning, toolResult, hasError, executionTime }:
   const displayCommand = truncateCommand(command);
   const isComplete = !isRunning && toolResult !== undefined;
 
-  // Detect if command text is truncated by ellipsis
+  // Detect if command text is truncated (by CSS ellipsis or by length)
+  const isLengthTruncated = command.length > 300;
   useLayoutEffect(() => {
     const el = commandRef.current;
     if (el) {
       setIsTruncated(el.scrollWidth > el.clientWidth);
     }
   }, [command]);
+  const showFullCommand = isTruncated || isLengthTruncated;
 
   // Detect file type from command (cat, head, tail, etc.)
   const fileReadMatch = command.match(/\b(cat|head|tail|less|more|sed|grep|awk|cut|sort|uniq|wc|diff|strings)\b.*?([\w./-]+\.(\w+))/);
@@ -140,7 +142,7 @@ function BashTool({ toolInput, isRunning, toolResult, hasError, executionTime }:
 
       {isExpanded && (
         <div className="bash-tool-details">
-          {isTruncated && (
+          {showFullCommand && (
             <div className="bash-tool-section">
               <div className="bash-tool-label">Command</div>
               <pre className="bash-tool-code">{command}</pre>
@@ -149,7 +151,7 @@ function BashTool({ toolInput, isRunning, toolResult, hasError, executionTime }:
 
           {isComplete && (
             <div className="bash-tool-section">
-              {isTruncated && (
+              {showFullCommand && (
                 <div className="bash-tool-label">
                   Output{hasError ? " (Error)" : ""}
                 </div>
