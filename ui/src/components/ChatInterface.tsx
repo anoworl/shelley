@@ -20,6 +20,7 @@ import BrowserConsoleLogsTool from "./BrowserConsoleLogsTool";
 import ChangeDirTool from "./ChangeDirTool";
 import BrowserResizeTool from "./BrowserResizeTool";
 import DeploySelfTool from "./DeploySelfTool";
+import ToolGroup from "./ToolGroup";
 import DirectoryPickerModal from "./DirectoryPickerModal";
 import SettingsModal from "./SettingsModal";
 import { getContextBarColor, formatTokens } from "../utils/context";
@@ -111,10 +112,8 @@ function ContextUsageBar({ contextWindowSize, maxContextTokens }: ContextUsageBa
   );
 }
 
-// Type for processed message items (messages or tool calls)
-interface CoalescedItem {
-  type: "message" | "tool";
-  message?: Message;
+// Single tool call data
+interface ToolCallData {
   toolUseId?: string;
   toolName?: string;
   toolInput?: unknown;
@@ -124,6 +123,24 @@ interface CoalescedItem {
   toolEndTime?: string | null;
   hasResult?: boolean;
   display?: unknown;
+}
+
+// Type for processed message items (messages, tool calls, or tool groups)
+interface CoalescedItem {
+  type: "message" | "tool" | "tool-group";
+  message?: Message;
+  // For single tool
+  toolUseId?: string;
+  toolName?: string;
+  toolInput?: unknown;
+  toolResult?: LLMContent[];
+  toolError?: boolean;
+  toolStartTime?: string | null;
+  toolEndTime?: string | null;
+  hasResult?: boolean;
+  display?: unknown;
+  // For tool-group
+  tools?: ToolCallData[];
 }
 
 interface CoalescedToolCallProps {
@@ -867,7 +884,52 @@ function ChatInterface({
       }
     });
 
-    return items;
+    // Group consecutive tool calls (2 or more) into tool-group items
+    const groupedItems: CoalescedItem[] = [];
+    let i = 0;
+    while (i < items.length) {
+      const item = items[i];
+      if (item.type === "tool") {
+        // Count consecutive tools
+        let j = i + 1;
+        while (j < items.length && items[j].type === "tool") {
+          j++;
+        }
+        const consecutiveCount = j - i;
+        if (consecutiveCount >= 2) {
+          // Group them
+          const toolGroup: ToolCallData[] = [];
+          for (let k = i; k < j; k++) {
+            const t = items[k];
+            toolGroup.push({
+              toolUseId: t.toolUseId,
+              toolName: t.toolName,
+              toolInput: t.toolInput,
+              toolResult: t.toolResult,
+              toolError: t.toolError,
+              toolStartTime: t.toolStartTime,
+              toolEndTime: t.toolEndTime,
+              hasResult: t.hasResult,
+              display: t.display,
+            });
+          }
+          groupedItems.push({
+            type: "tool-group",
+            tools: toolGroup,
+          });
+          i = j;
+        } else {
+          // Single tool, keep as is
+          groupedItems.push(item);
+          i++;
+        }
+      } else {
+        groupedItems.push(item);
+        i++;
+      }
+    }
+
+    return groupedItems;
   }, [messages]);
 
   // Scroll to bottom - must be after coalescedItems is defined
@@ -913,6 +975,8 @@ function ChatInterface({
             display={item.display}
           />
         );
+      } else if (item.type === "tool-group" && item.tools) {
+        return <ToolGroup tools={item.tools} />;
       }
       return null;
     },
@@ -926,6 +990,9 @@ function ChatInterface({
         return item.message.message_id;
       } else if (item.type === "tool" && item.toolUseId) {
         return item.toolUseId;
+      } else if (item.type === "tool-group" && item.tools && item.tools.length > 0) {
+        // Use first tool's ID as the group key
+        return `group-${item.tools[0].toolUseId || index}`;
       }
       return `item-${index}`;
     },
