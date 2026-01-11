@@ -14,6 +14,7 @@ import BrowserConsoleLogsTool from "./BrowserConsoleLogsTool";
 import ChangeDirTool from "./ChangeDirTool";
 import BrowserResizeTool from "./BrowserResizeTool";
 import DeploySelfTool from "./DeploySelfTool";
+import ToolGroup, { ToolCallData } from "./ToolGroup";
 import ContextMenu from "./ContextMenu";
 import UsageDetailModal from "./UsageDetailModal";
 
@@ -26,10 +27,65 @@ interface ToolDisplay {
 
 interface MessageProps {
   message: MessageType;
+  followingTools?: ToolCallData[];
+  showTools?: boolean;
   onOpenDiffViewer?: (commit: string) => void;
 }
 
-function Message({ message, onOpenDiffViewer }: MessageProps) {
+// Inline tool indicator component
+function ToolIndicator({ tools, expanded, onClick }: { tools: ToolCallData[]; expanded: boolean; onClick: () => void }) {
+  // Calculate stats
+  const errorCount = tools.filter(t => t.toolError).length;
+  const successCount = tools.filter(t => t.hasResult && !t.toolError).length;
+  const allCompleted = tools.every(t => t.hasResult);
+  
+  // Calculate total time
+  let totalMs = 0;
+  tools.forEach(t => {
+    if (t.toolStartTime && t.toolEndTime) {
+      const start = new Date(t.toolStartTime).getTime();
+      const end = new Date(t.toolEndTime).getTime();
+      totalMs += end - start;
+    }
+  });
+  
+  const formatTime = (ms: number) => {
+    if (ms < 1000) return `${ms}ms`;
+    return `${(ms / 1000).toFixed(1)}s`;
+  };
+
+  return (
+    <span
+      className={`tool-inline-indicator ${errorCount > 0 ? "has-error" : ""} ${expanded ? "expanded" : ""}`}
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick();
+      }}
+
+    >
+      <span className="tool-inline-indicator-stats">
+        {allCompleted ? (
+          <>
+            {errorCount > 0 && <span className="tool-inline-indicator-error">✗{errorCount}</span>}
+            <span className="tool-inline-indicator-success">✓{successCount}</span>
+            {totalMs > 0 && <span className="tool-inline-indicator-time">{formatTime(totalMs)}</span>}
+          </>
+        ) : (
+          <span className="tool-inline-indicator-running">...</span>
+        )}
+      </span>
+    </span>
+  );
+}
+
+function Message({ message, followingTools, showTools = true, onOpenDiffViewer }: MessageProps) {
+  // All hooks must be called before any early returns (React Rules of Hooks)
+  const [localToolsExpanded, setLocalToolsExpanded] = useState(false);
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
+  const [showUsageModal, setShowUsageModal] = useState(false);
+  const [longPressTimer, setLongPressTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
+  const messageRef = useRef<HTMLDivElement | null>(null);
+
   // Hide system messages from the UI
   if (message.type === "system") {
     return null;
@@ -109,12 +165,6 @@ function Message({ message, onOpenDiffViewer }: MessageProps) {
       </div>
     );
   }
-
-  // Context menu state
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
-  const [showUsageModal, setShowUsageModal] = useState(false);
-  const [longPressTimer, setLongPressTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
-  const messageRef = useRef<HTMLDivElement | null>(null);
 
   // Parse usage data if available (only for agent messages)
   let usage: Usage | null = null;
@@ -920,11 +970,45 @@ function Message({ message, onOpenDiffViewer }: MessageProps) {
       >
         {/* Message content */}
         <div className="message-content" data-testid="message-content">
-          {contentToRender.map((content, index) => (
-            <div key={index}>{renderContent(content)}</div>
-          ))}
+          {(() => {
+            // Find the last text content index for inline indicator placement
+            const shouldShowIndicator = followingTools && followingTools.length > 0 && !showTools;
+            const lastTextIndex = shouldShowIndicator
+              ? contentToRender.reduceRight((acc, content, idx) => {
+                  if (acc === -1 && getContentType(content.Type) === "text") return idx;
+                  return acc;
+                }, -1)
+              : -1;
+
+            return contentToRender.map((content, index) => {
+              const isLastText = index === lastTextIndex;
+              if (isLastText) {
+                // Render text with inline indicator inside the last paragraph
+                return (
+                  <div key={index} className="markdown-content">
+                    <MarkdownRenderer
+                      suffix={
+                        <ToolIndicator
+                          tools={followingTools!}
+                          expanded={localToolsExpanded}
+                          onClick={() => setLocalToolsExpanded(!localToolsExpanded)}
+                        />
+                      }
+                    >
+                      {content.Text || ""}
+                    </MarkdownRenderer>
+                  </div>
+                );
+              }
+              return <div key={index}>{renderContent(content)}</div>;
+            });
+          })()}
         </div>
       </div>
+      {/* Following tools - show when showTools is true OR locally expanded */}
+      {followingTools && followingTools.length > 0 && (showTools || localToolsExpanded) && (
+        <ToolGroup tools={followingTools} defaultExpanded={localToolsExpanded} />
+      )}
       {contextMenu && contextMenuItems.length > 0 && (
         <ContextMenu
           x={contextMenu.x}

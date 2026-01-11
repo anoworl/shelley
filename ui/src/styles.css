@@ -431,6 +431,65 @@ button {
   opacity: 0.4;
 }
 
+/* Inline tool indicator (shown at end of message when tools are hidden) */
+.markdown-content-with-indicator {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.25rem;
+}
+
+.markdown-content-with-indicator > .markdown-renderer {
+  flex: 1;
+  min-width: 0;
+}
+
+.tool-inline-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  cursor: pointer;
+  transition: opacity 0.15s;
+  flex-shrink: 0;
+  opacity: 0.4;
+  margin-bottom: 0.5em;
+  user-select: none;
+}
+
+.tool-inline-indicator:hover {
+  opacity: 0.7;
+}
+
+.tool-inline-indicator.expanded {
+  opacity: 1;
+}
+
+.tool-inline-indicator-stats {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.75rem;
+  font-family: var(--font-mono);
+  height: 1.25rem;
+  line-height: 1.25rem;
+}
+
+.tool-inline-indicator-success {
+  color: var(--success-text, #16a34a);
+}
+
+.tool-inline-indicator-error {
+  color: var(--error-text);
+}
+
+.tool-inline-indicator-time {
+  color: var(--text-secondary);
+}
+
+.tool-inline-indicator-running {
+  color: var(--text-secondary);
+}
+
 /* Header */
 .header {
   flex: 0 0 auto;
@@ -752,8 +811,6 @@ button {
 }
 
 .message-user .message-content {
-  margin-right: auto;
-  max-width: 80%;
   color: var(--user-message-text);
 }
 
