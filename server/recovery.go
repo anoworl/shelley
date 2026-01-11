@@ -20,9 +20,9 @@ func (s *Server) recoverInterruptedConversations(ctx context.Context) {
 	var conversations []generated.Conversation
 	err := s.db.Queries(ctx, func(q *generated.Queries) error {
 		var err error
-		// Get recent conversations (limit to 100 to avoid loading too many)
+		// Get all non-archived conversations (no practical limit)
 		conversations, err = q.ListConversations(ctx, generated.ListConversationsParams{
-			Limit:  100,
+			Limit:  10000,
 			Offset: 0,
 		})
 		return err
