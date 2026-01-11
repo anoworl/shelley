@@ -20,6 +20,7 @@
 - Add Model/Dir display in header; ultra-compact mobile header with extended tap areas (files: `ui/src/components/ChatInterface.tsx`, `ui/src/styles.css`)
 - Auto-resume interrupted conversations after server restart (files: `server/recovery.go`, `server/convo.go`, `server/server.go`, `loop/loop.go`, `db/query/conversations.sql`)
 - Use conversation ID in URL instead of slug; allow Unicode characters in titles (files: `ui/src/App.tsx`, `ui/src/components/ConversationDrawer.tsx`, `ui/src/services/api.ts`, `slug/slug.go`, `server/handlers.go`, `server/server.go`, `db/db.go`, `db/query/conversations.sql`)
+- Compact drawer header layout; move archived toggle to header; extend conversation list to safe-area on mobile (files: `ui/src/components/ConversationDrawer.tsx`, `ui/src/styles.css`)
 
 ## Compatibility / behavior changes
 
