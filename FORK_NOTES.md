@@ -18,6 +18,7 @@
 - Auto-detect and display GitHub PR/issue links in conversation list (files: `db/schema/012-add-github-urls.sql`, `server/github_urls.go`, `server/server.go`, `ui/src/components/ConversationDrawer.tsx`, `ui/src/styles.css`)
 - Group conversations by git origin in sidebar drawer (files: `db/schema/013-add-git-origin.sql`, `db/query/conversations.sql`, `db/db.go`, `gitstate/gitstate.go`, `server/convo.go`, `server/handlers.go`, `ui/src/components/ConversationDrawer.tsx`, `ui/src/styles.css`)
 - Add Model/Dir display in header; ultra-compact mobile header with extended tap areas (files: `ui/src/components/ChatInterface.tsx`, `ui/src/styles.css`)
+- Auto-resume interrupted conversations after server restart (files: `server/recovery.go`, `server/convo.go`, `server/server.go`, `loop/loop.go`, `db/query/conversations.sql`)
 
 ## Compatibility / behavior changes
 
