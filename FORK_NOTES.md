@@ -27,6 +27,7 @@
 - Add syntax highlighting with highlight.js for Markdown code blocks and file outputs (files: `ui/src/components/MarkdownRenderer.tsx`, `ui/src/components/HighlightedCode.tsx`, `ui/src/components/BashTool.tsx`, `ui/package.json`, `ui/src/styles.css`)
 - Improve tool component layout: unified header, compact padding, conditional Command section display (files: `ui/src/components/BashTool.tsx`, `ui/src/components/DeploySelfTool.tsx`, `ui/src/components/PatchTool.tsx`, `ui/src/styles.css`)
 - Require Shift+right-click for custom context menu; normal right-click shows system menu (files: `ui/src/components/Message.tsx`)
+- Fix Model/Dir selector not working on mobile new conversation screen; always show input on new conversation (files: `ui/src/components/ChatInterface.tsx`, `ui/src/styles.css`)
 
 ## Compatibility / behavior changes
 

@@ -1378,25 +1378,7 @@ function ChatInterface({
           !conversationId ? (
             // Empty conversation - show model (left) and cwd (right)
             <div
-              className="status-bar-new-conversation status-bar-clickable"
-              onClick={(e) => {
-                // Only trigger if clicking the background, not the buttons
-                if (e.target === e.currentTarget || (e.target as HTMLElement).closest('.status-field')) {
-                  if (!(e.target as HTMLElement).closest('button') && !(e.target as HTMLElement).closest('select')) {
-                    setMobileInputVisible(true);
-                  }
-                }
-              }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  if (!(e.target as HTMLElement).closest('button') && !(e.target as HTMLElement).closest('select')) {
-                    e.preventDefault();
-                    setMobileInputVisible(true);
-                  }
-                }
-              }}
-              role="button"
-              tabIndex={0}
+              className="status-bar-new-conversation"
             >
               {/* Model selector - far left */}
               <div
@@ -1410,6 +1392,7 @@ function ChatInterface({
                     value={selectedModel}
                     onChange={(e) => setSelectedModel(e.target.value)}
                     onBlur={() => setEditingModel(false)}
+                    onClick={(e) => e.stopPropagation()}
                     disabled={sending}
                     className="status-select"
                     autoFocus
@@ -1423,7 +1406,10 @@ function ChatInterface({
                 ) : (
                   <button
                     className="status-chip"
-                    onClick={() => setEditingModel(true)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setEditingModel(true);
+                    }}
                     disabled={sending}
                   >
                     {selectedModel}
@@ -1439,7 +1425,10 @@ function ChatInterface({
                 <span className="status-field-label">Dir:</span>
                 <button
                   className={`status-chip${cwdError ? " status-chip-error" : ""}`}
-                  onClick={() => setShowDirectoryPicker(true)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowDirectoryPicker(true);
+                  }}
                   disabled={sending}
                 >
                   {selectedCwd || "(no cwd)"}
@@ -1489,7 +1478,7 @@ function ChatInterface({
         injectedText={diffCommentText}
         onClearInjectedText={() => setDiffCommentText("")}
         persistKey={conversationId || "new-conversation"}
-        mobileVisible={mobileInputVisible}
+        mobileVisible={mobileInputVisible || !conversationId}
         onMobileBlur={() => setMobileInputVisible(false)}
       />
 
