@@ -43,56 +43,57 @@ function DeploySelfTool({
     >
       <div className="bash-tool-header" onClick={() => setIsExpanded(!isExpanded)}>
         <div className="bash-tool-summary">
+          <button
+            className="bash-tool-toggle"
+            aria-label={isExpanded ? "Collapse" : "Expand"}
+            aria-expanded={isExpanded}
+          >
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 12 12"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              style={{
+                transform: isExpanded ? "rotate(90deg)" : "rotate(0deg)",
+                transition: "transform 0.2s",
+              }}
+            >
+              <path
+                d="M4.5 3L7.5 6L4.5 9"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </button>
           <span className={`bash-tool-emoji ${isRunning ? "running" : ""}`}>🚀</span>
           <span className="bash-tool-command">deploy_self</span>
-          {isComplete && hasError && <span className="bash-tool-error">✗</span>}
-          {isComplete && !hasError && <span className="bash-tool-success">✓</span>}
         </div>
-        <button
-          className="bash-tool-toggle"
-          aria-label={isExpanded ? "Collapse" : "Expand"}
-          aria-expanded={isExpanded}
-        >
-          <svg
-            width="12"
-            height="12"
-            viewBox="0 0 12 12"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            style={{
-              transform: isExpanded ? "rotate(90deg)" : "rotate(0deg)",
-              transition: "transform 0.2s",
-            }}
-          >
-            <path
-              d="M4.5 3L7.5 6L4.5 9"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </button>
+        <div className="bash-tool-header-right">
+          {isComplete && (
+            <span className="bash-tool-status">
+              {hasError ? (
+                <span className="bash-tool-error">✗</span>
+              ) : (
+                <span className="bash-tool-success">✓</span>
+              )}
+            </span>
+          )}
+          {isComplete && executionTime && (
+            <span className="bash-tool-time">{executionTime}</span>
+          )}
+        </div>
       </div>
 
-      {isExpanded && (
+      {isExpanded && isComplete && (
         <div className="bash-tool-details">
           <div className="bash-tool-section">
-            <div className="bash-tool-label">Source Binary:</div>
-            <pre className="bash-tool-code">{sourceBinary || "(not specified)"}</pre>
+            <pre className={`bash-tool-code ${hasError ? "error" : ""}`}>
+              {output || "(no output)"}
+            </pre>
           </div>
-
-          {isComplete && (
-            <div className="bash-tool-section">
-              <div className="bash-tool-label">
-                Result{hasError ? " (Error)" : ""}:
-                {executionTime && <span className="bash-tool-time">{executionTime}</span>}
-              </div>
-              <pre className={`bash-tool-code ${hasError ? "error" : ""}`}>
-                {output || "(no output)"}
-              </pre>
-            </div>
-          )}
         </div>
       )}
     </div>

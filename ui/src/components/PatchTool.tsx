@@ -109,36 +109,48 @@ function PatchTool({
     >
       <div className="patch-tool-header" onClick={() => setIsExpanded(!isExpanded)}>
         <div className="patch-tool-summary">
+          <button
+            className="patch-tool-toggle"
+            aria-label={isExpanded ? "Collapse" : "Expand"}
+            aria-expanded={isExpanded}
+          >
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 12 12"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              style={{
+                transform: isExpanded ? "rotate(90deg)" : "rotate(0deg)",
+                transition: "transform 0.2s",
+              }}
+            >
+              <path
+                d="M4.5 3L7.5 6L4.5 9"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </button>
           <span className={`patch-tool-emoji ${isRunning ? "running" : ""}`}>🖋️</span>
           <span className="patch-tool-filename">{filename || "patch"}</span>
-          {isComplete && hasError && <span className="patch-tool-error">✗</span>}
-          {isComplete && !hasError && <span className="patch-tool-success">✓</span>}
         </div>
-        <button
-          className="patch-tool-toggle"
-          aria-label={isExpanded ? "Collapse" : "Expand"}
-          aria-expanded={isExpanded}
-        >
-          <svg
-            width="12"
-            height="12"
-            viewBox="0 0 12 12"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            style={{
-              transform: isExpanded ? "rotate(90deg)" : "rotate(0deg)",
-              transition: "transform 0.2s",
-            }}
-          >
-            <path
-              d="M4.5 3L7.5 6L4.5 9"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </button>
+        <div className="patch-tool-header-right">
+          {isComplete && (
+            <span className="patch-tool-status">
+              {hasError ? (
+                <span className="patch-tool-error">✗</span>
+              ) : (
+                <span className="patch-tool-success">✓</span>
+              )}
+            </span>
+          )}
+          {isComplete && executionTime && (
+            <span className="patch-tool-time">{executionTime}</span>
+          )}
+        </div>
       </div>
 
       {isExpanded && (
@@ -176,8 +188,7 @@ function PatchTool({
           {isComplete && hasError && (
             <div className="patch-tool-section">
               <div className="patch-tool-label">
-                <span>Error:</span>
-                {executionTime && <span className="patch-tool-time">{executionTime}</span>}
+                <span>Error</span>
               </div>
               <pre className="patch-tool-error-message">{diff || "Patch failed"}</pre>
             </div>
@@ -185,7 +196,7 @@ function PatchTool({
 
           {isRunning && (
             <div className="patch-tool-section">
-              <div className="patch-tool-label">Applying patch...</div>
+              <div className="patch-tool-label">Applying patch</div>
             </div>
           )}
         </div>

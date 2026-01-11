@@ -1206,17 +1206,30 @@ button {
   color: var(--text-primary);
 }
 
+.bash-tool-header-right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.bash-tool-status {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
 .bash-tool-details {
-  padding: 0 1rem 0.75rem 1rem;
+  padding: 0 0.25rem 0.25rem 0.25rem;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.25rem;
 }
 
 .bash-tool-section {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.25rem;
 }
 
 .bash-tool-label {
@@ -1239,8 +1252,8 @@ button {
   font-size: 0.875rem;
   background: var(--bg-base);
   border: 1px solid var(--border);
-  border-radius: 0.25rem;
-  padding: 0.75rem;
+  border-radius: 0;
+  padding: 0.25rem 0.5rem;
   margin: 0;
   overflow-x: auto;
   white-space: pre-wrap;
@@ -1252,6 +1265,14 @@ button {
   background: var(--error-bg);
   border-color: var(--error-border);
   color: var(--error-text);
+}
+
+.bash-tool-markdown {
+  background: var(--bg-base);
+  border: 1px solid var(--border);
+  border-radius: 0;
+  padding: 0.25rem 0.5rem;
+  overflow-x: auto;
 }
 
 /* Patch Tool */
@@ -1349,17 +1370,30 @@ button {
   color: var(--text-primary);
 }
 
+.patch-tool-header-right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.patch-tool-status {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
 .patch-tool-details {
-  padding: 0 1rem 0.75rem 1rem;
+  padding: 0 0.25rem 0.25rem 0.25rem;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.25rem;
 }
 
 .patch-tool-section {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.25rem;
 }
 
 .patch-tool-label {
@@ -3679,6 +3713,10 @@ svg {
   margin: 0.25rem 0;
 }
 
+.message-tool-group .message-content {
+  padding: 0.25rem 0;
+}
+
 .tool-group-header {
   display: flex;
   justify-content: space-between;
@@ -3873,6 +3911,120 @@ svg {
   border-radius: 0.25rem;
   padding: 0.1em 0.3em;
   font-size: 0.9em;
+}
+
+/* highlight.js syntax highlighting - light mode colors */
+.hljs {
+  color: #24292e;
+}
+.hljs-doctag, .hljs-keyword, .hljs-meta .hljs-keyword,
+.hljs-template-tag, .hljs-template-variable, .hljs-type,
+.hljs-variable.language_ {
+  color: #d73a49;
+}
+.hljs-title, .hljs-title.class_, .hljs-title.class_.inherited__,
+.hljs-title.function_ {
+  color: #6f42c1;
+}
+.hljs-attr, .hljs-attribute, .hljs-literal, .hljs-meta,
+.hljs-number, .hljs-operator, .hljs-selector-attr,
+.hljs-selector-class, .hljs-selector-id, .hljs-variable {
+  color: #005cc5;
+}
+.hljs-meta .hljs-string, .hljs-regexp, .hljs-string {
+  color: #032f62;
+}
+.hljs-built_in, .hljs-symbol {
+  color: #e36209;
+}
+.hljs-code, .hljs-comment, .hljs-formula {
+  color: #6a737d;
+}
+.hljs-name, .hljs-quote, .hljs-selector-pseudo, .hljs-selector-tag {
+  color: #22863a;
+}
+.hljs-subst {
+  color: #24292e;
+}
+.hljs-section {
+  color: #005cc5;
+  font-weight: 700;
+}
+.hljs-bullet {
+  color: #735c0f;
+}
+.hljs-emphasis {
+  color: #24292e;
+  font-style: italic;
+}
+.hljs-strong {
+  color: #24292e;
+  font-weight: 700;
+}
+.hljs-addition {
+  color: #22863a;
+  background-color: #f0fff4;
+}
+.hljs-deletion {
+  color: #b31d28;
+  background-color: #ffeef0;
+}
+
+/* highlight.js syntax highlighting - dark mode colors */
+.dark .hljs {
+  color: #c9d1d9;
+}
+.dark .hljs-doctag, .dark .hljs-keyword, .dark .hljs-meta .hljs-keyword,
+.dark .hljs-template-tag, .dark .hljs-template-variable, .dark .hljs-type,
+.dark .hljs-variable.language_ {
+  color: #ff7b72;
+}
+.dark .hljs-title, .dark .hljs-title.class_, .dark .hljs-title.class_.inherited__,
+.dark .hljs-title.function_ {
+  color: #d2a8ff;
+}
+.dark .hljs-attr, .dark .hljs-attribute, .dark .hljs-literal, .dark .hljs-meta,
+.dark .hljs-number, .dark .hljs-operator, .dark .hljs-selector-attr,
+.dark .hljs-selector-class, .dark .hljs-selector-id, .dark .hljs-variable {
+  color: #79c0ff;
+}
+.dark .hljs-meta .hljs-string, .dark .hljs-regexp, .dark .hljs-string {
+  color: #a5d6ff;
+}
+.dark .hljs-built_in, .dark .hljs-symbol {
+  color: #ffa657;
+}
+.dark .hljs-code, .dark .hljs-comment, .dark .hljs-formula {
+  color: #8b949e;
+}
+.dark .hljs-name, .dark .hljs-quote, .dark .hljs-selector-pseudo, .dark .hljs-selector-tag {
+  color: #7ee787;
+}
+.dark .hljs-subst {
+  color: #c9d1d9;
+}
+.dark .hljs-section {
+  color: #1f6feb;
+  font-weight: 700;
+}
+.dark .hljs-bullet {
+  color: #f2cc60;
+}
+.dark .hljs-emphasis {
+  color: #c9d1d9;
+  font-style: italic;
+}
+.dark .hljs-strong {
+  color: #c9d1d9;
+  font-weight: 700;
+}
+.dark .hljs-addition {
+  color: #aff5b4;
+  background-color: #033a16;
+}
+.dark .hljs-deletion {
+  color: #ffdcd7;
+  background-color: #67060c;
 }
 
 .markdown-content img {
