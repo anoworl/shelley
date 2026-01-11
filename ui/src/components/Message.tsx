@@ -79,8 +79,13 @@ function ToolIndicator({ tools, expanded, onClick }: { tools: ToolCallData[]; ex
 }
 
 function Message({ message, followingTools, showTools = true, onOpenDiffViewer }: MessageProps) {
-  // Local state for expanding tools when showTools is false
+  // All hooks must be called before any early returns (React Rules of Hooks)
   const [localToolsExpanded, setLocalToolsExpanded] = useState(false);
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
+  const [showUsageModal, setShowUsageModal] = useState(false);
+  const [longPressTimer, setLongPressTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
+  const messageRef = useRef<HTMLDivElement | null>(null);
+
   // Hide system messages from the UI
   if (message.type === "system") {
     return null;
@@ -160,12 +165,6 @@ function Message({ message, followingTools, showTools = true, onOpenDiffViewer }
       </div>
     );
   }
-
-  // Context menu state
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
-  const [showUsageModal, setShowUsageModal] = useState(false);
-  const [longPressTimer, setLongPressTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
-  const messageRef = useRef<HTMLDivElement | null>(null);
 
   // Parse usage data if available (only for agent messages)
   let usage: Usage | null = null;
