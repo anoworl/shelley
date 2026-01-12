@@ -58,13 +58,11 @@ func New(cfg Config) (*DB, error) {
 		return nil, fmt.Errorf(":memory: database not supported (requires multiple connections); use a temp file")
 	}
 
-	// Ensure directory exists for file-based SQLite databases
-	if cfg.DSN != ":memory:" {
-		dir := filepath.Dir(cfg.DSN)
-		if dir != "." && dir != "" {
-			if err := os.MkdirAll(dir, 0o755); err != nil {
-				return nil, fmt.Errorf("failed to create database directory: %w", err)
-			}
+	// Ensure directory exists for file-based databases
+	dir := filepath.Dir(cfg.DSN)
+	if dir != "." && dir != "" {
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			return nil, fmt.Errorf("failed to create database directory: %w", err)
 		}
 	}
 
