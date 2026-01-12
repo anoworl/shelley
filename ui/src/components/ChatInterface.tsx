@@ -698,7 +698,10 @@ function ChatInterface({
   };
 
   const sendMessage = async (message: string) => {
-    if (!message.trim() || sending) return;
+    if (!message.trim()) return;
+    if (sending) {
+      throw new Error("Already sending");
+    }
 
     // Optimistic update: immediately show user message
     const optimisticMessage: Message = {
