@@ -117,7 +117,7 @@ func TestGenerateSlug_DatabaseIntegration(t *testing.T) {
 	}))
 
 	// Create first conversation to establish the base slug
-	conv1, err := database.CreateConversation(ctx, nil, true, nil, nil)
+	conv1, err := database.CreateConversation(ctx, nil, true, nil, nil, nil)
 	if err != nil {
 		t.Fatalf("Failed to create first conversation: %v", err)
 	}
@@ -132,7 +132,7 @@ func TestGenerateSlug_DatabaseIntegration(t *testing.T) {
 	}
 
 	// Create second conversation
-	conv2, err := database.CreateConversation(ctx, nil, true, nil, nil)
+	conv2, err := database.CreateConversation(ctx, nil, true, nil, nil, nil)
 	if err != nil {
 		t.Fatalf("Failed to create second conversation: %v", err)
 	}
@@ -147,7 +147,7 @@ func TestGenerateSlug_DatabaseIntegration(t *testing.T) {
 	}
 
 	// Create third conversation
-	conv3, err := database.CreateConversation(ctx, nil, true, nil, nil)
+	conv3, err := database.CreateConversation(ctx, nil, true, nil, nil, nil)
 	if err != nil {
 		t.Fatalf("Failed to create third conversation: %v", err)
 	}

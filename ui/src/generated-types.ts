@@ -16,6 +16,7 @@ export interface Conversation {
 	agent_error: boolean;
 	github_urls: string | null;
 	git_origin: string | null;
+	model_id: string | null;
 }
 
 export interface Usage {
