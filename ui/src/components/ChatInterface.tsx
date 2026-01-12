@@ -681,8 +681,17 @@ function ChatInterface({
       // Reset reconnect attempts on successful connection
       setReconnectAttempts(0);
       setIsDisconnected(false);
-      // Reload messages to sync state (especially agent_working) after reconnect
-      loadMessages();
+      // Sync agent_working and model_id state after reconnect
+      // Don't call loadMessages() here - it would race with SSE messages
+      // and potentially overwrite newer messages with an older snapshot
+      if (conversationId) {
+        api.getConversation(conversationId).then((response) => {
+          setAgentWorking(Boolean(response.agent_working));
+          if (response.conversation.model_id) {
+            setSelectedModelState(response.conversation.model_id);
+          }
+        });
+      }
     };
   };
 
