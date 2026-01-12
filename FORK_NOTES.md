@@ -38,6 +38,7 @@
 - Fix self-deploy: run deploy daemon as systemd transient service in separate cgroup; SIGKILL service before stopping socket to avoid 10s timeout (files: `claudetool/deploy.go`, `cmd/shelley/main.go`)
 - Store model_id per conversation for recovery and UI sync; remove broken getModelFromMessages that used API model names (files: `db/schema/015-add-model-id.sql`, `db/query/conversations.sql`, `db/db.go`, `server/handlers.go`, `server/recovery.go`, `ui/src/components/ChatInterface.tsx`)
 - Add Enter key behavior setting: Stop & Send mode to interrupt agent and send immediately; Ctrl+Enter inverts behavior; fix focus loss after submit by removing sending from disabled prop (files: `server/settings.go`, `ui/src/types.ts`, `ui/src/components/SettingsModal.tsx`, `ui/src/components/ChatInterface.tsx`, `ui/src/components/MessageInput.tsx`, `AGENT.md`, `AGENT_TESTING.md`)
+- Migrate from modernc.org/sqlite to libSQL (go-libsql) for better concurrent write support and immediate visibility across connections (files: `db/db.go`, `db/pool.go`, `go.mod`, `go.sum`)
 
 ## Compatibility / behavior changes
 

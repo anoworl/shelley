@@ -22,7 +22,7 @@ import (
 	"github.com/google/uuid"
 	"shelley.exe.dev/db/generated"
 
-	_ "modernc.org/sqlite"
+	_ "github.com/tursodatabase/go-libsql"
 )
 
 //go:embed schema/*.sql
@@ -69,7 +69,11 @@ func New(cfg Config) (*DB, error) {
 	}
 
 	// Create connection pool with 3 readers
+	// libSQL requires file: prefix for local files
 	dsn := cfg.DSN
+	if !strings.HasPrefix(dsn, "file:") && !strings.HasPrefix(dsn, "libsql:") && !strings.HasPrefix(dsn, "http") {
+		dsn = "file:" + dsn
+	}
 	if !strings.Contains(dsn, "?") {
 		dsn += "?_foreign_keys=on"
 	} else if !strings.Contains(dsn, "_foreign_keys") {
@@ -185,11 +189,49 @@ func (db *DB) executeMigration(ctx context.Context, filename string) error {
 		return fmt.Errorf("failed to read migration file %s: %w", filename, err)
 	}
 
-	if err := db.pool.Exec(ctx, string(content)); err != nil {
-		return fmt.Errorf("failed to execute migration %s: %w", filename, err)
+	// libSQL requires executing statements one at a time
+	statements := splitSQLStatements(string(content))
+	for _, stmt := range statements {
+		if err := db.pool.Exec(ctx, stmt); err != nil {
+			return fmt.Errorf("failed to execute migration %s: %w", filename, err)
+		}
 	}
 
 	return nil
+}
+
+// splitSQLStatements splits SQL content into individual statements.
+// It handles comments and semicolons properly.
+func splitSQLStatements(content string) []string {
+	var statements []string
+	var current strings.Builder
+
+	lines := strings.Split(content, "\n")
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		// Skip empty lines and comment-only lines
+		if trimmed == "" || strings.HasPrefix(trimmed, "--") {
+			continue
+		}
+		current.WriteString(line)
+		current.WriteString("\n")
+
+		// Check if line ends with semicolon (statement complete)
+		if strings.HasSuffix(trimmed, ";") {
+			stmt := strings.TrimSpace(current.String())
+			if stmt != "" {
+				statements = append(statements, stmt)
+			}
+			current.Reset()
+		}
+	}
+
+	// Handle any remaining content without trailing semicolon
+	if remaining := strings.TrimSpace(current.String()); remaining != "" {
+		statements = append(statements, remaining)
+	}
+
+	return statements
 }
 
 // Pool returns the underlying connection pool for advanced operations
