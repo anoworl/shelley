@@ -11,7 +11,9 @@ require (
 	github.com/richardlehane/crock32 v1.0.1
 	github.com/samber/slog-http v1.8.2
 	github.com/sashabaranov/go-openai v1.41.1
+	github.com/tursodatabase/go-libsql v0.0.0-20251219133454-43644db490ff
 	go.skia.org/infra v0.0.0-20250421160028-59e18403fd4a
+	golang.org/x/image v0.34.0
 	golang.org/x/sync v0.19.0
 	mvdan.cc/sh/v3 v3.12.0
 	sketch.dev v0.0.33
@@ -39,6 +41,7 @@ require (
 	github.com/jackc/pgx/v5 v5.7.5 // indirect
 	github.com/jackc/puddle/v2 v2.2.2 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
+	github.com/libsql/sqlite-antlr4-parser v0.0.0-20240327125255-dbf53b6cbf06 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/ncruces/go-strftime v0.1.9 // indirect
@@ -63,7 +66,6 @@ require (
 	go.uber.org/zap v1.27.0 // indirect
 	golang.org/x/crypto v0.46.0 // indirect
 	golang.org/x/exp v0.0.0-20250620022241-b7579e27df2b // indirect
-	golang.org/x/image v0.34.0 // indirect
 	golang.org/x/mod v0.31.0 // indirect
 	golang.org/x/net v0.48.0 // indirect
 	golang.org/x/text v0.32.0 // indirect
@@ -88,7 +90,7 @@ require (
 	github.com/gobwas/ws v1.4.0 // indirect
 	golang.org/x/sys v0.39.0
 	golang.org/x/term v0.38.0 // indirect
-	modernc.org/sqlite v1.38.2
+	modernc.org/sqlite v1.38.2 // indirect
 )
 
 tool (

@@ -30,7 +30,7 @@ func NewPool(dataSourceName string, readerCount int) (*Pool, error) {
 	// TODO: a caller could override PRAGMA query_only.
 	// Consider opening two *sql.DBs, one configured as read-only,
 	// to ensure read-only transactions are always such.
-	db, err := sql.Open("sqlite", dataSourceName)
+	db, err := sql.Open("libsql", dataSourceName)
 	if err != nil {
 		return nil, fmt.Errorf("NewPool: %w", err)
 	}
@@ -87,10 +87,13 @@ func InitPoolDB(db *sql.DB, numConns int) error {
 			return fmt.Errorf("InitPoolDB: %w", err)
 		}
 		for _, q := range initQueries {
-			if _, err := conn.ExecContext(context.Background(), q); err != nil {
+			// Use QueryContext for PRAGMAs that return rows (like journal_mode)
+			rows, err := conn.QueryContext(context.Background(), q)
+			if err != nil {
 				db.Close()
 				return fmt.Errorf("InitPoolDB %d: %w", i, err)
 			}
+			rows.Close()
 		}
 		conns = append(conns, conn)
 	}
