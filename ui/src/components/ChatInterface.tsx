@@ -774,6 +774,7 @@ function ChatInterface({
     } catch (err) {
       console.error("Failed to cancel conversation:", err);
       setError("Failed to cancel. Please try again.");
+      throw err; // Re-throw so callers know cancel failed
     } finally {
       setCancelling(false);
     }
@@ -1612,6 +1613,7 @@ function ChatInterface({
 
       {/* Message input - hidden on mobile until status bar is tapped */}
       <MessageInput
+        key={conversationId || "new"}
         onSend={async (msg) => {
           await sendMessage(msg);
           // Hide input on mobile after sending
