@@ -1049,7 +1049,7 @@ function ChatInterface({
           while (j < finalItems.length) {
             const current = finalItems[j];
             // Stop if we hit a user message or gitinfo
-            if (current.message.type === "user" || current.message.type === "gitinfo") break;
+            if (current.message.type === "user" || current.message.type === "gitinfo" || current.message.type === "error") break;
             
             const text = getTextFromMessage(current.message);
             if (text || current.followingTools?.length) {
