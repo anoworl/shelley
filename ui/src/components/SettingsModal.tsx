@@ -96,6 +96,30 @@ function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
           {error && <div className="settings-error">{error}</div>}
 
           <div className="settings-section">
+            <h3 className="settings-section-title">Display</h3>
+            <div className="settings-row">
+              <label className="settings-label">Tool Indicator Mode</label>
+              <select
+                className="settings-select"
+                value={settings.ui?.indicatorMode ?? "inline"}
+                onChange={(e) =>
+                  setSettings((prev) => ({
+                    ...prev,
+                    ui: { ...prev.ui, indicatorMode: e.target.value as "inline" | "block" | "hidden" },
+                  }))
+                }
+              >
+                <option value="inline">Inline (compact, merge paragraphs)</option>
+                <option value="block">Block (indicators on separate lines)</option>
+                <option value="hidden">Hidden (no indicators)</option>
+              </select>
+            </div>
+            <p className="settings-field-description">
+              Controls how tool execution indicators are displayed when tools are collapsed.
+            </p>
+          </div>
+
+          <div className="settings-section">
             <h3 className="settings-section-title">Guardian AI</h3>
             <p className="settings-section-description">
               Guardian AI monitors the agent's behavior and can stop it when it goes off track.

@@ -37,6 +37,10 @@ interface MessageProps {
   showTools?: boolean;
   // When showTools=false, consecutive LLM messages are merged into segments
   mergedSegments?: MessageSegment[];
+  // "inline" (default): show indicators inline with text, merge paragraphs
+  // "block": show indicators but keep paragraphs separate (legacy behavior)
+  // "hidden": don't show indicators
+  indicatorMode?: "inline" | "block" | "hidden";
   onOpenDiffViewer?: (commit: string) => void;
 }
 
@@ -86,9 +90,11 @@ function ToolIndicator({ tools, expanded, onClick }: { tools: ToolCallData[]; ex
   );
 }
 
-function Message({ message, followingTools, showTools = true, mergedSegments, onOpenDiffViewer }: MessageProps) {
+function Message({ message, followingTools, showTools = true, mergedSegments, indicatorMode = "inline", onOpenDiffViewer }: MessageProps) {
   // All hooks must be called before any early returns (React Rules of Hooks)
-  const [localToolsExpanded, setLocalToolsExpanded] = useState(false);
+  // For merged segments, track which segment indices are expanded; for single message, use -1 as key
+  const [expandedSegments, setExpandedSegments] = useState<Set<number>>(new Set());
+  const localToolsExpanded = expandedSegments.size > 0;
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
   const [showUsageModal, setShowUsageModal] = useState(false);
   const [longPressTimer, setLongPressTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
@@ -833,8 +839,8 @@ function Message({ message, followingTools, showTools = true, mergedSegments, on
   const getMessageClasses = () => {
     const toolsHidden = !showTools && !localToolsExpanded;
     const hiddenClass = toolsHidden ? " tools-hidden" : "";
-    // When showTools is false, always apply compact paragraph style (even when expanded)
-    const compactClass = !showTools ? " tools-compact" : "";
+    // When showTools is false and indicatorMode is inline, apply compact paragraph style (even when expanded)
+    const compactClass = !showTools && indicatorMode === "inline" ? " tools-compact" : "";
     if (isUser) {
       return "message message-user";
     }
@@ -989,11 +995,22 @@ function Message({ message, followingTools, showTools = true, mergedSegments, on
             <div className="markdown-content">
               {mergedSegments.map((segment, segIndex) => {
                 const hasTools = segment.followingTools && segment.followingTools.length > 0;
-                const suffix = hasTools ? (
+                const isExpanded = expandedSegments.has(segIndex);
+                const suffix = hasTools && indicatorMode === "inline" ? (
                   <ToolIndicator
                     tools={segment.followingTools!}
-                    expanded={localToolsExpanded}
-                    onClick={() => setLocalToolsExpanded(!localToolsExpanded)}
+                    expanded={isExpanded}
+                    onClick={() => {
+                      setExpandedSegments(prev => {
+                        const next = new Set(prev);
+                        if (next.has(segIndex)) {
+                          next.delete(segIndex);
+                        } else {
+                          next.add(segIndex);
+                        }
+                        return next;
+                      });
+                    }}
                   />
                 ) : undefined;
                 
@@ -1006,10 +1023,17 @@ function Message({ message, followingTools, showTools = true, mergedSegments, on
             </div>
           </div>
         </div>
-        {/* Show all tools when expanded */}
-        {allTools.length > 0 && localToolsExpanded && (
-          <ToolGroup tools={allTools} defaultExpanded={localToolsExpanded} />
-        )}
+        {/* Show tools for expanded segments */}
+        {mergedSegments.map((segment, segIndex) => {
+          const hasTools = segment.followingTools && segment.followingTools.length > 0;
+          const isExpanded = expandedSegments.has(segIndex);
+          if (hasTools && isExpanded) {
+            return (
+              <ToolGroup key={`tools-${segIndex}`} tools={segment.followingTools!} defaultExpanded={true} />
+            );
+          }
+          return null;
+        })}
         {contextMenu && contextMenuItems.length > 0 && (
           <ContextMenu
             x={contextMenu.x}
@@ -1046,7 +1070,7 @@ function Message({ message, followingTools, showTools = true, mergedSegments, on
         <div className="message-content" data-testid="message-content">
           {(() => {
             // Find the last text content index for inline indicator placement
-            const shouldShowIndicator = followingTools && followingTools.length > 0 && !showTools;
+            const shouldShowIndicator = followingTools && followingTools.length > 0 && !showTools && indicatorMode !== "hidden";
             const lastTextIndex = shouldShowIndicator
               ? contentToRender.reduceRight((acc, content, idx) => {
                   if (acc === -1 && getContentType(content.Type) === "text") return idx;
@@ -1058,14 +1082,25 @@ function Message({ message, followingTools, showTools = true, mergedSegments, on
               const isLastText = index === lastTextIndex;
               if (isLastText) {
                 // Render text with inline indicator inside the last paragraph
+                const isExpanded = expandedSegments.has(-1); // Use -1 for single message indicator
                 return (
                   <div key={index} className="markdown-content">
                     <MarkdownRenderer
                       suffix={
                         <ToolIndicator
                           tools={followingTools!}
-                          expanded={localToolsExpanded}
-                          onClick={() => setLocalToolsExpanded(!localToolsExpanded)}
+                          expanded={isExpanded}
+                          onClick={() => {
+                            setExpandedSegments(prev => {
+                              const next = new Set(prev);
+                              if (next.has(-1)) {
+                                next.delete(-1);
+                              } else {
+                                next.add(-1);
+                              }
+                              return next;
+                            });
+                          }}
                         />
                       }
                     >
@@ -1080,8 +1115,8 @@ function Message({ message, followingTools, showTools = true, mergedSegments, on
         </div>
       </div>
       {/* Following tools - show when showTools is true OR locally expanded */}
-      {followingTools && followingTools.length > 0 && (showTools || localToolsExpanded) && (
-        <ToolGroup tools={followingTools} defaultExpanded={localToolsExpanded} />
+      {followingTools && followingTools.length > 0 && (showTools || expandedSegments.has(-1)) && (
+        <ToolGroup tools={followingTools} defaultExpanded={expandedSegments.has(-1)} />
       )}
       {contextMenu && contextMenuItems.length > 0 && (
         <ContextMenu

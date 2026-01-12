@@ -137,6 +137,15 @@ export interface GuardianSettings {
   toolCheck?: GuardianCheckSettings;
 }
 
+// UI settings
+export interface UISettings {
+  // "inline" (default): show indicators inline with text, merge paragraphs
+  // "block": show indicators but keep paragraphs separate (legacy behavior)
+  // "hidden": don't show indicators
+  indicatorMode?: "inline" | "block" | "hidden";
+}
+
 export interface Settings {
   guardian?: GuardianSettings;
+  ui?: UISettings;
 }

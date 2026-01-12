@@ -477,6 +477,7 @@ function ChatInterface({
   const [themeMode, setThemeMode] = useState<ThemeMode>(getStoredTheme);
   const [showDiffViewer, setShowDiffViewer] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [indicatorMode, setIndicatorMode] = useState<"inline" | "block" | "hidden">("inline");
   const [diffViewerInitialCommit, setDiffViewerInitialCommit] = useState<string | undefined>(
     undefined,
   );
@@ -502,6 +503,20 @@ function ChatInterface({
   const eventSourceRef = useRef<EventSource | null>(null);
   const overflowMenuRef = useRef<HTMLDivElement>(null);
   const reconnectTimeoutRef = useRef<number | null>(null);
+
+  // Load settings on mount and when settings modal closes
+  const loadSettings = async () => {
+    try {
+      const settings = await api.getSettings();
+      setIndicatorMode(settings.ui?.indicatorMode ?? "inline");
+    } catch (err) {
+      console.error("Failed to load settings:", err);
+    }
+  };
+
+  useEffect(() => {
+    loadSettings();
+  }, []);
 
   // Load messages and set up streaming
   useEffect(() => {
@@ -1004,8 +1019,8 @@ function ChatInterface({
       }
     }
 
-    // When showTools is false, merge consecutive LLM messages into segments
-    if (!showTools) {
+    // When showTools is false and indicatorMode is "inline", merge consecutive LLM messages into segments
+    if (!showTools && indicatorMode === "inline") {
       const mergedItems: CoalescedItem[] = [];
       let i = 0;
       while (i < finalItems.length) {
@@ -1070,7 +1085,7 @@ function ChatInterface({
     }
 
     return finalItems;
-  }, [messages, pendingUserMessage, showTools]);
+  }, [messages, pendingUserMessage, showTools, indicatorMode]);
 
   // Scroll to bottom - must be after coalescedItems is defined
   const scrollToBottom = useCallback(() => {
@@ -1098,6 +1113,7 @@ function ChatInterface({
           followingTools={item.followingTools}
           showTools={showTools}
           mergedSegments={item.mergedSegments}
+          indicatorMode={indicatorMode}
           onOpenDiffViewer={(commit) => {
             setDiffViewerInitialCommit(commit);
             setShowDiffViewer(true);
@@ -1105,7 +1121,7 @@ function ChatInterface({
         />
       );
     },
-    [showTools]
+    [showTools, indicatorMode]
   );
 
   // Compute item key for Virtualizer
@@ -1639,7 +1655,7 @@ function ChatInterface({
       />
 
       {/* Settings Modal */}
-      <SettingsModal isOpen={showSettings} onClose={() => setShowSettings(false)} />
+      <SettingsModal isOpen={showSettings} onClose={() => { setShowSettings(false); loadSettings(); }} />
     </div>
   );
 }
