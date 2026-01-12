@@ -718,6 +718,7 @@ function ChatInterface({
       created_at: new Date().toISOString(),
     };
     setPendingUserMessage(optimisticMessage);
+    shouldStickToBottom.current = true; // Re-enable auto-scroll when sending
 
     try {
       setSending(true);
