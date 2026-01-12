@@ -56,6 +56,12 @@ interface MessageInputProps {
   mobileVisible?: boolean;
   /** Called when input loses focus on mobile (to hide it) */
   onMobileBlur?: () => void;
+  /** Whether the agent is currently working */
+  agentWorking?: boolean;
+  /** Callback to cancel the current agent work */
+  onCancel?: () => Promise<void>;
+  /** Enter key behavior setting */
+  enterBehavior?: "send" | "stop_and_send";
 }
 
 const PERSIST_KEY_PREFIX = "shelley_draft_";
@@ -70,6 +76,9 @@ function MessageInput({
   persistKey,
   mobileVisible = true,
   onMobileBlur,
+  agentWorking = false,
+  onCancel,
+  enterBehavior = "send",
 }: MessageInputProps) {
   const [message, setMessage] = useState(() => {
     // Load persisted draft if persistKey is set
@@ -82,6 +91,7 @@ function MessageInput({
   const [uploadsInProgress, setUploadsInProgress] = useState(0);
   const [dragCounter, setDragCounter] = useState(0);
   const [isListening, setIsListening] = useState(false);
+  const [ctrlPressed, setCtrlPressed] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   // Track the base text (before speech recognition started) and finalized speech text
@@ -173,6 +183,31 @@ function MessageInput({
       if (recognitionRef.current) {
         recognitionRef.current.abort();
       }
+    };
+  }, []);
+
+  // Track Ctrl/Cmd key state for icon display
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey || e.metaKey) {
+        setCtrlPressed(true);
+      }
+    };
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (!e.ctrlKey && !e.metaKey) {
+        setCtrlPressed(false);
+      }
+    };
+    const handleBlur = () => setCtrlPressed(false);
+    
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    window.addEventListener('blur', handleBlur);
+    
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+      window.removeEventListener('blur', handleBlur);
     };
   }, []);
 
@@ -283,29 +318,44 @@ function MessageInput({
     }
   }, [injectedText, onClearInjectedText]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent, invertBehavior = false) => {
     e.preventDefault();
-    if (message.trim() && !disabled && !submitting && uploadsInProgress === 0) {
-      // Stop listening if we were recording
-      if (isListening) {
-        stopListening();
-      }
+    // Determine effective behavior (Ctrl+Enter inverts the setting)
+    const effectiveBehavior = invertBehavior
+      ? (enterBehavior === "send" ? "stop_and_send" : "send")
+      : enterBehavior;
+    
+    // In stop_and_send mode, allow submit even while agent is working
+    const canSubmitNow = message.trim() && !submitting && uploadsInProgress === 0 &&
+      (!disabled || (agentWorking && effectiveBehavior === "stop_and_send"));
+    
+    if (!canSubmitNow) return;
+    
+    // Stop listening if we were recording
+    if (isListening) {
+      stopListening();
+    }
 
-      const messageToSend = message;
-      setSubmitting(true);
-      try {
-        await onSend(messageToSend);
-        // Only clear on success
-        setMessage("");
-        // Clear persisted draft on successful send
-        if (persistKey) {
-          localStorage.removeItem(PERSIST_KEY_PREFIX + persistKey);
-        }
-      } catch {
-        // Keep the message on error so user can retry
-      } finally {
-        setSubmitting(false);
+    const messageToSend = message;
+    setSubmitting(true);
+    try {
+      // If agent is working and effective behavior is stop_and_send, cancel first
+      if (agentWorking && effectiveBehavior === "stop_and_send" && onCancel) {
+        await onCancel();
       }
+      await onSend(messageToSend);
+      // Only clear on success
+      setMessage("");
+      // Clear persisted draft on successful send
+      if (persistKey) {
+        localStorage.removeItem(PERSIST_KEY_PREFIX + persistKey);
+      }
+    } catch {
+      // Keep the message on error so user can retry
+    } finally {
+      setSubmitting(false);
+      // Always keep focus on textarea after React re-renders
+      setTimeout(() => textareaRef.current?.focus(), 0);
     }
   };
 
@@ -316,7 +366,8 @@ function MessageInput({
     }
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      handleSubmit(e);
+      // Ctrl+Enter inverts the behavior setting
+      handleSubmit(e, e.ctrlKey || e.metaKey);
     }
   };
 
@@ -354,7 +405,14 @@ function MessageInput({
   }, [autoFocus]);
 
   const isDisabled = disabled || uploadsInProgress > 0;
-  const canSubmit = message.trim() && !isDisabled && !submitting;
+  // Determine effective behavior based on Ctrl key state
+  const effectiveBehavior = ctrlPressed
+    ? (enterBehavior === "send" ? "stop_and_send" : "send")
+    : enterBehavior;
+  
+  // In stop_and_send mode, allow submit even while agent is working
+  const canSubmit = message.trim() && !submitting && uploadsInProgress === 0 && 
+    (!disabled || (agentWorking && effectiveBehavior === "stop_and_send"));
 
   const isDraggingOver = dragCounter > 0;
   // Note: injectedText is auto-inserted via useEffect, no manual UI needed
@@ -438,12 +496,20 @@ function MessageInput({
           className="message-send-btn"
           aria-label="Send message"
           data-testid="send-button"
+          onMouseDown={(e) => e.preventDefault()} // Prevent focus from moving to button
         >
-          {isDisabled || submitting ? (
+          {submitting ? (
             <div className="flex items-center justify-center">
               <div className="spinner spinner-small" style={{ borderTopColor: "white" }}></div>
             </div>
+          ) : agentWorking && effectiveBehavior === "stop_and_send" ? (
+            // Double chevron up icon for stop & send mode (no rotation)
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="20" height="20" strokeWidth="2.5" style={{ transform: 'none' }}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 18.75 7.5-7.5 7.5 7.5" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 7.5-7.5 7.5 7.5" />
+            </svg>
           ) : (
+            // Normal arrow icon
             <svg fill="currentColor" viewBox="0 0 24 24" width="20" height="20">
               <path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z" />
             </svg>

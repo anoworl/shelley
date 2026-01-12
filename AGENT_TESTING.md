@@ -43,7 +43,30 @@ For testing with predictable model (no API key needed):
 ./bin/shelley --model predictable --db test.db serve --port 9001
 ```
 
-### 4. Start Headless Browser (if using headless tool)
+### 4. Testing the Production Instance (Port 9999)
+
+When testing the live Shelley instance running on port 9999, use a mitmproxy reverse proxy to inject required headers. This is necessary because the production instance requires authentication headers.
+
+**Start the proxy:**
+```bash
+mitmdump \
+  --mode reverse:http://localhost:9999 \
+  --listen-port 3000 \
+  --set modify_headers='/~q/X-Exedev-Email/user@example.com' \
+  --set modify_headers='/~q/X-Exedev-Userid/usr1234'
+```
+
+**Then access via browser tools:**
+```bash
+# Navigate to the proxied URL
+browser_navigate http://localhost:3000
+
+# All requests will have auth headers injected automatically
+```
+
+**Note:** Direct access to port 9999 from browser tools will fail with "Failed to load conversations" because the auth headers are missing.
+
+### 5. Start Headless Browser (if using headless tool)
 
 ```bash
 headless start

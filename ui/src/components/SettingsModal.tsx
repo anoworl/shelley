@@ -141,6 +141,26 @@ function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                 </p>
               </>
             )}
+
+            <div className="settings-row">
+              <label className="settings-label">Enter Key Behavior</label>
+              <select
+                className="settings-select"
+                value={settings.ui?.enterBehavior ?? "send"}
+                onChange={(e) =>
+                  setSettings((prev) => ({
+                    ...prev,
+                    ui: { ...prev.ui, enterBehavior: e.target.value as "send" | "stop_and_send" },
+                  }))
+                }
+              >
+                <option value="send">Send (wait for agent to finish)</option>
+                <option value="stop_and_send">Stop & Send (interrupt and send immediately)</option>
+              </select>
+            </div>
+            <p className="settings-field-description">
+              Controls what happens when you press Enter while the agent is working.
+            </p>
           </div>
 
           <div className="settings-section">
