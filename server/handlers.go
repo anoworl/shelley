@@ -110,6 +110,32 @@ func (s *Server) handleWriteFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Verify the path is within a git repository
+	// checking the directory of the file
+	dir := filepath.Dir(clean)
+	state := gitstate.GetGitState(dir)
+	if !state.IsRepo {
+		http.Error(w, "file must be within a git repository", http.StatusForbidden)
+		return
+	}
+
+	// Also ensure we are not trying to traverse out of the git worktree
+	// GetGitState returns the worktree root
+	// We use clean (which is absolute) to check against Worktree (which is absolute)
+	if !strings.HasPrefix(clean, state.Worktree+string(os.PathSeparator)) && clean != state.Worktree {
+		// Just to be extra safe, although if it's in the repo it should be under the worktree.
+		// There might be edge cases with submodules or worktrees, but strict prefix check is safer.
+		http.Error(w, "path traversal detected", http.StatusForbidden)
+		return
+	}
+
+	// Block writes to .git directory to prevent RCE via hooks/config
+	if strings.Contains(clean, string(os.PathSeparator)+".git"+string(os.PathSeparator)) ||
+		strings.HasSuffix(clean, string(os.PathSeparator)+".git") {
+		http.Error(w, "writing to .git directory is not allowed", http.StatusForbidden)
+		return
+	}
+
 	// Write the file
 	if err := os.WriteFile(clean, []byte(req.Content), 0o644); err != nil {
 		http.Error(w, fmt.Sprintf("failed to write file: %v", err), http.StatusInternalServerError)
