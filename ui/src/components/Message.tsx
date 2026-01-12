@@ -1,6 +1,6 @@
 import React, { useState, useRef } from "react";
 import MarkdownRenderer from "./MarkdownRenderer";
-import { Message as MessageType, LLMMessage, LLMContent, Usage } from "../types";
+import { Message as MessageType, LLMMessage, LLMContent, Usage, ToolCallData, MessageSegment } from "../types";
 import BashTool from "./BashTool";
 import PatchTool from "./PatchTool";
 import ScreenshotTool from "./ScreenshotTool";
@@ -14,7 +14,7 @@ import BrowserConsoleLogsTool from "./BrowserConsoleLogsTool";
 import ChangeDirTool from "./ChangeDirTool";
 import BrowserResizeTool from "./BrowserResizeTool";
 import DeploySelfTool from "./DeploySelfTool";
-import ToolGroup, { ToolCallData } from "./ToolGroup";
+import ToolGroup from "./ToolGroup";
 import ContextMenu from "./ContextMenu";
 import UsageDetailModal from "./UsageDetailModal";
 
@@ -23,12 +23,6 @@ interface ToolDisplay {
   tool_use_id: string;
   tool_name?: string;
   display: unknown;
-}
-
-// Segment of text with its following tools (for merged display)
-interface MessageSegment {
-  text: string;
-  followingTools?: ToolCallData[];
 }
 
 interface MessageProps {

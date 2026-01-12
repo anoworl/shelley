@@ -152,3 +152,22 @@ export interface Settings {
   guardian?: GuardianSettings;
   ui?: UISettings;
 }
+
+// Tool call data for grouping tools
+export interface ToolCallData {
+  toolUseId?: string;
+  toolName?: string;
+  toolInput?: unknown;
+  toolResult?: LLMContent[];
+  toolError?: boolean;
+  toolStartTime?: string | null;
+  toolEndTime?: string | null;
+  hasResult?: boolean;
+  display?: unknown;
+}
+
+// Segment of text with its following tools (for merged display)
+export interface MessageSegment {
+  text: string;
+  followingTools?: ToolCallData[];
+}

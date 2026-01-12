@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback, useLayoutEffect } from "react";
 import { Virtualizer, VirtualizerHandle } from "virtua";
-import { Message, Conversation, StreamResponse, LLMContent } from "../types";
+import { Message, Conversation, StreamResponse, LLMContent, ToolCallData, MessageSegment } from "../types";
 import { api } from "../services/api";
 import { ThemeMode, getStoredTheme, setStoredTheme, applyTheme } from "../services/theme";
 import { buildVSCodeFolderUrl } from "../services/vscode";
@@ -112,19 +112,6 @@ function ContextUsageBar({ contextWindowSize, maxContextTokens }: ContextUsageBa
   );
 }
 
-// Single tool call data
-interface ToolCallData {
-  toolUseId?: string;
-  toolName?: string;
-  toolInput?: unknown;
-  toolResult?: LLMContent[];
-  toolError?: boolean;
-  toolStartTime?: string | null;
-  toolEndTime?: string | null;
-  hasResult?: boolean;
-  display?: unknown;
-}
-
 // Type for processed message items (messages, tool calls, or tool groups)
 // Intermediate item type used during coalescence
 interface IntermediateItem {
@@ -140,12 +127,6 @@ interface IntermediateItem {
   toolEndTime?: string | null;
   hasResult?: boolean;
   display?: unknown;
-}
-
-// Segment of text with its following tools (for merged display)
-interface MessageSegment {
-  text: string;
-  followingTools?: ToolCallData[];
 }
 
 // Final coalesced item: message with optional following tools

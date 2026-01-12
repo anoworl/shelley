@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { LLMContent } from "../types";
+import { LLMContent, ToolCallData } from "../types";
 import BashTool from "./BashTool";
 import PatchTool from "./PatchTool";
 import ScreenshotTool from "./ScreenshotTool";
@@ -13,18 +13,6 @@ import ChangeDirTool from "./ChangeDirTool";
 import BrowserResizeTool from "./BrowserResizeTool";
 import DeploySelfTool from "./DeploySelfTool";
 import GenericTool from "./GenericTool";
-
-export interface ToolCallData {
-  toolUseId?: string;
-  toolName?: string;
-  toolInput?: unknown;
-  toolResult?: LLMContent[];
-  toolError?: boolean;
-  toolStartTime?: string | null;
-  toolEndTime?: string | null;
-  hasResult?: boolean;
-  display?: unknown;
-}
 
 interface ToolGroupProps {
   tools: ToolCallData[];
