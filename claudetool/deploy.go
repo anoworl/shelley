@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"syscall"
 
 	"shelley.exe.dev/llm"
 )
@@ -57,11 +56,12 @@ func (t *DeploySelfTool) run(ctx context.Context, input json.RawMessage) llm.Too
 
 	// Fork the deploy daemon using the NEW binary (not the running one)
 	// This avoids UI staleness checks failing on the old binary
+	// Use sudo systemd-run (without --scope) to run as a transient service
+	// This immediately returns and the command runs in a separate cgroup
 	// Use systemd-cat to send output to journald (viewable with: journalctl -t shelley-deploy)
-	cmd := exec.Command("systemd-cat", "--identifier=shelley-deploy", params.SourceBinary, "deploy-daemon", params.SourceBinary)
-	cmd.SysProcAttr = &syscall.SysProcAttr{
-		Setsid: true, // Create new session, detach from parent
-	}
+	cmd := exec.Command("sudo", "systemd-run",
+		"systemd-cat", "--identifier=shelley-deploy",
+		params.SourceBinary, "deploy-daemon", params.SourceBinary)
 
 	if err := cmd.Start(); err != nil {
 		return llm.ToolOut{Error: fmt.Errorf("failed to start deploy daemon: %v", err)}
