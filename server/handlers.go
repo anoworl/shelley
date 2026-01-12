@@ -728,7 +728,7 @@ func (s *Server) handleNewConversation(w http.ResponseWriter, r *http.Request) {
 			gitOriginPtr = &origin
 		}
 	}
-	conversation, err := s.db.CreateConversation(ctx, nil, true, cwdPtr, gitOriginPtr)
+	conversation, err := s.db.CreateConversation(ctx, nil, true, cwdPtr, gitOriginPtr, &modelID)
 	if err != nil {
 		s.logger.Error("Failed to create conversation", "error", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)

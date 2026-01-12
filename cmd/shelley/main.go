@@ -12,6 +12,7 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
+	"time"
 
 	"shelley.exe.dev/claudetool"
 	"shelley.exe.dev/db"
@@ -247,11 +248,29 @@ func runDeployDaemon(args []string) {
 
 	sourceBinary := args[0]
 
-	// Stop service with immediate kill (no graceful shutdown timeout)
-	stopCmd := exec.Command("sudo", "systemctl", "stop", "--force", "shelley.service")
+	// Brief delay to allow the deploy_self tool response to be sent to the browser
+	// before we kill the service
+	time.Sleep(500 * time.Millisecond)
+
+	// Kill service immediately with SIGKILL (no graceful shutdown)
+	// Do this BEFORE stopping socket, because stopping socket with BindsTo
+	// triggers graceful shutdown of service which takes TimeoutStopSec (10s)
+	killCmd := exec.Command("sudo", "systemctl", "kill", "-s", "SIGKILL", "shelley.service")
+	if err := killCmd.Run(); err != nil {
+		// Service might not be running, that's OK
+		fmt.Fprintf(os.Stderr, "Warning: kill returned error (service may not be running): %v\n", err)
+	}
+
+	// Now stop socket to prevent new connections from triggering service restart
+	stopSocketCmd := exec.Command("sudo", "systemctl", "stop", "shelley.socket")
+	if err := stopSocketCmd.Run(); err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: stop socket returned error: %v\n", err)
+	}
+
+	// Wait for service to fully stop (should be immediate after SIGKILL)
+	stopCmd := exec.Command("sudo", "systemctl", "stop", "shelley.service")
 	if err := stopCmd.Run(); err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to stop service: %v\n", err)
-		os.Exit(1)
+		fmt.Fprintf(os.Stderr, "Warning: stop returned error: %v\n", err)
 	}
 
 	// Copy binary
@@ -266,10 +285,10 @@ func runDeployDaemon(args []string) {
 		os.Exit(1)
 	}
 
-	// Start service
-	startCmd := exec.Command("sudo", "systemctl", "start", "shelley.service")
-	if err := startCmd.Run(); err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to start service: %v\n", err)
+	// Start socket (this will trigger service start on first connection)
+	startSocketCmd := exec.Command("sudo", "systemctl", "start", "shelley.socket")
+	if err := startSocketCmd.Run(); err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to start socket: %v\n", err)
 		os.Exit(1)
 	}
 

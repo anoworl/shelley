@@ -219,7 +219,7 @@ func WithTxRes[T any](db *DB, ctx context.Context, fn func(*generated.Queries) (
 // Conversation methods (moved from ConversationService)
 
 // CreateConversation creates a new conversation with an optional slug
-func (db *DB) CreateConversation(ctx context.Context, slug *string, userInitiated bool, cwd *string, gitOrigin *string) (*generated.Conversation, error) {
+func (db *DB) CreateConversation(ctx context.Context, slug *string, userInitiated bool, cwd *string, gitOrigin *string, modelID *string) (*generated.Conversation, error) {
 	conversationID, err := generateConversationID()
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate conversation ID: %w", err)
@@ -233,6 +233,7 @@ func (db *DB) CreateConversation(ctx context.Context, slug *string, userInitiate
 			UserInitiated:  userInitiated,
 			Cwd:            cwd,
 			GitOrigin:      gitOrigin,
+			ModelID:        modelID,
 		})
 		return err
 	})

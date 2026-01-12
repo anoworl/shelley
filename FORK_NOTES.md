@@ -35,6 +35,8 @@
 - Fix markdown layout in agent messages with display: contents (files: `ui/src/styles.css`)
 - Merge consecutive agent messages into single block when tools are hidden; inline tool indicators show at each segment boundary (files: `ui/src/components/ChatInterface.tsx`, `ui/src/components/Message.tsx`, `ui/src/components/MarkdownRenderer.tsx`, `ui/src/styles.css`, `loop/predictable.go`)
 - Add expansion behavior setting (single/all) for inline tool indicators; update tool icons from cog to rectangle-stack; increase messages container padding to 1rem (files: `server/settings.go`, `ui/src/types.ts`, `ui/src/components/SettingsModal.tsx`, `ui/src/components/ChatInterface.tsx`, `ui/src/components/Message.tsx`, `ui/src/components/ToolGroup.tsx`, `ui/src/styles.css`, `NOTICES`)
+- Fix self-deploy: run deploy daemon as systemd transient service in separate cgroup; SIGKILL service before stopping socket to avoid 10s timeout (files: `claudetool/deploy.go`, `cmd/shelley/main.go`)
+- Store model_id per conversation for recovery and UI sync; remove broken getModelFromMessages that used API model names (files: `db/schema/015-add-model-id.sql`, `db/query/conversations.sql`, `db/db.go`, `server/handlers.go`, `server/recovery.go`, `ui/src/components/ChatInterface.tsx`)
 
 ## Compatibility / behavior changes
 

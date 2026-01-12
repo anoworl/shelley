@@ -21,6 +21,7 @@ type Conversation struct {
 	AgentError        bool      `json:"agent_error"`
 	GithubUrls        *string   `json:"github_urls"`
 	GitOrigin         *string   `json:"git_origin"`
+	ModelID           *string   `json:"model_id"`
 }
 
 type Message struct {

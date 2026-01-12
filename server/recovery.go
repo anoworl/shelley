@@ -72,9 +72,11 @@ func (s *Server) recoverConversation(ctx context.Context, conv generated.Convers
 		return
 	}
 
-	// Get the model from the last agent message's usage data, fall back to default
-	modelID := s.getModelFromMessages(messages)
-	if modelID == "" {
+	// Get the model from the conversation, fall back to default
+	var modelID string
+	if conv.ModelID != nil {
+		modelID = *conv.ModelID
+	} else {
 		modelID = s.defaultModel
 	}
 
@@ -197,24 +199,3 @@ func (s *Server) recordMissingToolResultsForRecovery(ctx context.Context, conver
 	return err
 }
 
-// getModelFromMessages extracts the model ID from the last agent message's usage data.
-// Returns empty string if no model can be determined.
-func (s *Server) getModelFromMessages(messages []generated.Message) string {
-	// Search from the end to find the most recent agent message with usage data
-	for i := len(messages) - 1; i >= 0; i-- {
-		msg := messages[i]
-		if msg.Type != string(db.MessageTypeAgent) || msg.UsageData == nil {
-			continue
-		}
-
-		var usage llm.Usage
-		if err := json.Unmarshal([]byte(*msg.UsageData), &usage); err != nil {
-			continue
-		}
-
-		if usage.Model != "" {
-			return usage.Model
-		}
-	}
-	return ""
-}

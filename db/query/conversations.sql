@@ -1,7 +1,12 @@
 -- name: CreateConversation :one
-INSERT INTO conversations (conversation_id, slug, user_initiated, cwd, git_origin)
-VALUES (?, ?, ?, ?, ?)
+INSERT INTO conversations (conversation_id, slug, user_initiated, cwd, git_origin, model_id)
+VALUES (?, ?, ?, ?, ?, ?)
 RETURNING *;
+
+-- name: UpdateConversationModelID :exec
+UPDATE conversations
+SET model_id = ?, updated_at = CURRENT_TIMESTAMP
+WHERE conversation_id = ?;
 
 -- name: GetConversation :one
 SELECT * FROM conversations

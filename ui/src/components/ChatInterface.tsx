@@ -556,6 +556,10 @@ function ChatInterface({
       // Always update context window size when loading a conversation.
       // If omitted from response (due to omitempty when 0), default to 0.
       setContextWindowSize(response.context_window_size ?? 0);
+      // Sync model selection with conversation's model
+      if (response.conversation.model_id) {
+        setSelectedModelState(response.conversation.model_id);
+      }
       if (onConversationUpdate) {
         onConversationUpdate(response.conversation);
       }
@@ -677,6 +681,17 @@ function ChatInterface({
       // Reset reconnect attempts on successful connection
       setReconnectAttempts(0);
       setIsDisconnected(false);
+      // Sync agent_working and model_id state after reconnect
+      // Don't call loadMessages() here - it would race with SSE messages
+      // and potentially overwrite newer messages with an older snapshot
+      if (conversationId) {
+        api.getConversation(conversationId).then((response) => {
+          setAgentWorking(Boolean(response.agent_working));
+          if (response.conversation.model_id) {
+            setSelectedModelState(response.conversation.model_id);
+          }
+        });
+      }
     };
   };
 
