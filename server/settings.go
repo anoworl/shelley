@@ -13,6 +13,20 @@ import (
 // Settings represents the application settings stored as JSON
 type Settings struct {
 	Guardian *GuardianSettings `json:"guardian,omitempty"`
+	UI       *UISettings       `json:"ui,omitempty"`
+}
+
+// UISettings contains UI-related settings
+type UISettings struct {
+	// IndicatorMode controls how tool indicators are displayed when tools are hidden
+	// "inline" (default): show indicators inline with text, merge paragraphs
+	// "block": show indicators but keep paragraphs separate (legacy behavior)
+	// "hidden": don't show indicators
+	IndicatorMode string `json:"indicatorMode,omitempty"`
+	// ExpansionBehavior controls how inline indicators expand (only applies when IndicatorMode is "inline")
+	// "single" (default): only expand the clicked indicator
+	// "all": expand all indicators in the same message
+	ExpansionBehavior string `json:"expansionBehavior,omitempty"`
 }
 
 // GuardianSettings contains settings for the guardian AI
@@ -42,6 +56,10 @@ func DefaultSettings() Settings {
 				Model:   "claude-haiku-4-5-20251001",
 				Prompt:  "",
 			},
+		},
+		UI: &UISettings{
+			IndicatorMode:     "inline",
+			ExpansionBehavior: "single",
 		},
 	}
 }

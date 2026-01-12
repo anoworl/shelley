@@ -33,6 +33,8 @@
 - Fix scroll shake when reaching bottom of conversation (files: `ui/src/components/ChatInterface.tsx`)
 - Optimistic update: show user message immediately on send before server confirmation (files: `ui/src/components/ChatInterface.tsx`)
 - Fix markdown layout in agent messages with display: contents (files: `ui/src/styles.css`)
+- Merge consecutive agent messages into single block when tools are hidden; inline tool indicators show at each segment boundary (files: `ui/src/components/ChatInterface.tsx`, `ui/src/components/Message.tsx`, `ui/src/components/MarkdownRenderer.tsx`, `ui/src/styles.css`, `loop/predictable.go`)
+- Add expansion behavior setting (single/all) for inline tool indicators; update tool icons from cog to rectangle-stack; increase messages container padding to 1rem (files: `server/settings.go`, `ui/src/types.ts`, `ui/src/components/SettingsModal.tsx`, `ui/src/components/ChatInterface.tsx`, `ui/src/components/Message.tsx`, `ui/src/components/ToolGroup.tsx`, `ui/src/styles.css`, `NOTICES`)
 
 ## Compatibility / behavior changes
 

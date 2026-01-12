@@ -137,6 +137,37 @@ export interface GuardianSettings {
   toolCheck?: GuardianCheckSettings;
 }
 
+// UI settings
+export interface UISettings {
+  // "inline" (default): show indicators inline with text, merge paragraphs
+  // "block": show indicators but keep paragraphs separate (legacy behavior)
+  // "hidden": don't show indicators
+  indicatorMode?: "inline" | "block" | "hidden";
+  // "single" (default): only expand the clicked indicator
+  // "all": expand all indicators in the same message
+  expansionBehavior?: "single" | "all";
+}
+
 export interface Settings {
   guardian?: GuardianSettings;
+  ui?: UISettings;
+}
+
+// Tool call data for grouping tools
+export interface ToolCallData {
+  toolUseId?: string;
+  toolName?: string;
+  toolInput?: unknown;
+  toolResult?: LLMContent[];
+  toolError?: boolean;
+  toolStartTime?: string | null;
+  toolEndTime?: string | null;
+  hasResult?: boolean;
+  display?: unknown;
+}
+
+// Segment of text with its following tools (for merged display)
+export interface MessageSegment {
+  text: string;
+  followingTools?: ToolCallData[];
 }

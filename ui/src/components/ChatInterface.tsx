@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback, useLayoutEffect } from "react";
 import { Virtualizer, VirtualizerHandle } from "virtua";
-import { Message, Conversation, StreamResponse, LLMContent } from "../types";
+import { Message, Conversation, StreamResponse, LLMContent, ToolCallData, MessageSegment } from "../types";
 import { api } from "../services/api";
 import { ThemeMode, getStoredTheme, setStoredTheme, applyTheme } from "../services/theme";
 import { buildVSCodeFolderUrl } from "../services/vscode";
@@ -112,19 +112,6 @@ function ContextUsageBar({ contextWindowSize, maxContextTokens }: ContextUsageBa
   );
 }
 
-// Single tool call data
-interface ToolCallData {
-  toolUseId?: string;
-  toolName?: string;
-  toolInput?: unknown;
-  toolResult?: LLMContent[];
-  toolError?: boolean;
-  toolStartTime?: string | null;
-  toolEndTime?: string | null;
-  hasResult?: boolean;
-  display?: unknown;
-}
-
 // Type for processed message items (messages, tool calls, or tool groups)
 // Intermediate item type used during coalescence
 interface IntermediateItem {
@@ -148,6 +135,8 @@ interface CoalescedItem {
   message: Message;
   // Tools that follow this message (merged into the message)
   followingTools?: ToolCallData[];
+  // When showTools=false, consecutive LLM messages are merged into segments
+  mergedSegments?: MessageSegment[];
 }
 
 interface CoalescedToolCallProps {
@@ -469,6 +458,8 @@ function ChatInterface({
   const [themeMode, setThemeMode] = useState<ThemeMode>(getStoredTheme);
   const [showDiffViewer, setShowDiffViewer] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [indicatorMode, setIndicatorMode] = useState<"inline" | "block" | "hidden">("inline");
+  const [expansionBehavior, setExpansionBehavior] = useState<"single" | "all">("single");
   const [diffViewerInitialCommit, setDiffViewerInitialCommit] = useState<string | undefined>(
     undefined,
   );
@@ -494,6 +485,21 @@ function ChatInterface({
   const eventSourceRef = useRef<EventSource | null>(null);
   const overflowMenuRef = useRef<HTMLDivElement>(null);
   const reconnectTimeoutRef = useRef<number | null>(null);
+
+  // Load settings on mount and when settings modal closes
+  const loadSettings = async () => {
+    try {
+      const settings = await api.getSettings();
+      setIndicatorMode(settings.ui?.indicatorMode ?? "inline");
+      setExpansionBehavior(settings.ui?.expansionBehavior ?? "single");
+    } catch (err) {
+      console.error("Failed to load settings:", err);
+    }
+  };
+
+  useEffect(() => {
+    loadSettings();
+  }, []);
 
   // Load messages and set up streaming
   useEffect(() => {
@@ -996,8 +1002,73 @@ function ChatInterface({
       }
     }
 
+    // When showTools is false and indicatorMode is "inline", merge consecutive LLM messages into segments
+    if (!showTools && indicatorMode === "inline") {
+      const mergedItems: CoalescedItem[] = [];
+      let i = 0;
+      while (i < finalItems.length) {
+        const item = finalItems[i];
+        // Only merge agent/tool messages (not user, gitinfo, etc.)
+        if (item.message.type === "agent" || item.message.type === "tool") {
+          // Extract text from this message's llm_data
+          const getTextFromMessage = (msg: Message): string => {
+            if (!msg.llm_data) return "";
+            try {
+              const llmData = typeof msg.llm_data === "string" ? JSON.parse(msg.llm_data) : msg.llm_data;
+              if (llmData?.Content && Array.isArray(llmData.Content)) {
+                return llmData.Content
+                  .filter((c: LLMContent) => c.Type === 2) // text type
+                  .map((c: LLMContent) => c.Text || "")
+                  .join("")
+                  .trim();
+              }
+            } catch { /* ignore */ }
+            return "";
+          };
+
+          // Collect consecutive LLM messages
+          const segments: MessageSegment[] = [];
+          let j = i;
+          while (j < finalItems.length) {
+            const current = finalItems[j];
+            // Stop if we hit a user message or gitinfo
+            if (current.message.type === "user" || current.message.type === "gitinfo" || current.message.type === "error") break;
+            
+            const text = getTextFromMessage(current.message);
+            if (text || current.followingTools?.length) {
+              segments.push({
+                text,
+                followingTools: current.followingTools,
+              });
+            }
+            j++;
+          }
+
+          if (segments.length > 1) {
+            // Merge all segments into the first message
+            mergedItems.push({
+              type: "message",
+              message: item.message,
+              followingTools: item.followingTools,
+              mergedSegments: segments,
+            });
+          } else {
+            // Single message, no merging needed
+            mergedItems.push(item);
+            j = i + 1; // Reset j since we didn't actually merge
+          }
+          i = j;
+        } else {
+          // User message or other type, keep as-is
+          mergedItems.push(item);
+          i++;
+        }
+      }
+      return mergedItems;
+    }
+
     return finalItems;
-  }, [messages, pendingUserMessage]);
+  }, [messages, pendingUserMessage, showTools, indicatorMode]);
 
   // Scroll to bottom - must be after coalescedItems is defined
   const scrollToBottom = useCallback(() => {
@@ -1024,6 +1095,9 @@ function ChatInterface({
           message={item.message}
           followingTools={item.followingTools}
           showTools={showTools}
+          mergedSegments={item.mergedSegments}
+          indicatorMode={indicatorMode}
+          expansionBehavior={expansionBehavior}
           onOpenDiffViewer={(commit) => {
             setDiffViewerInitialCommit(commit);
             setShowDiffViewer(true);
@@ -1031,7 +1105,7 @@ function ChatInterface({
         />
       );
     },
-    [showTools]
+    [showTools, indicatorMode, expansionBehavior]
   );
 
   // Compute item key for Virtualizer
@@ -1114,14 +1188,8 @@ function ChatInterface({
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                strokeWidth={2}
-                d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
-              />
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                strokeWidth={1.5}
+                d="M6 6.87803V6C6 4.75736 7.00736 3.75 8.25 3.75H15.75C16.9926 3.75 18 4.75736 18 6V6.87803M6 6.87803C6.23458 6.79512 6.48702 6.75 6.75 6.75H17.25C17.513 6.75 17.7654 6.79512 18 6.87803M6 6.87803C5.12611 7.18691 4.5 8.02034 4.5 9V9.87803M18 6.87803C18.8739 7.18691 19.5 8.02034 19.5 9V9.87803M19.5 9.87803C19.2654 9.79512 19.013 9.75 18.75 9.75H5.25C4.98702 9.75 4.73458 9.79512 4.5 9.87803M19.5 9.87803C20.3739 10.1869 21 11.0203 21 12V18C21 19.2426 19.9926 20.25 18.75 20.25H5.25C4.00736 20.25 3 19.2426 3 18V12C3 11.0203 3.62611 10.1869 4.5 9.87803"
               />
             </svg>
           </button>
@@ -1565,7 +1633,7 @@ function ChatInterface({
       />
 
       {/* Settings Modal */}
-      <SettingsModal isOpen={showSettings} onClose={() => setShowSettings(false)} />
+      <SettingsModal isOpen={showSettings} onClose={() => { setShowSettings(false); loadSettings(); }} />
     </div>
   );
 }

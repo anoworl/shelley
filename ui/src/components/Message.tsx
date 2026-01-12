@@ -1,6 +1,6 @@
 import React, { useState, useRef } from "react";
 import MarkdownRenderer from "./MarkdownRenderer";
-import { Message as MessageType, LLMMessage, LLMContent, Usage } from "../types";
+import { Message as MessageType, LLMMessage, LLMContent, Usage, ToolCallData, MessageSegment } from "../types";
 import BashTool from "./BashTool";
 import PatchTool from "./PatchTool";
 import ScreenshotTool from "./ScreenshotTool";
@@ -14,7 +14,7 @@ import BrowserConsoleLogsTool from "./BrowserConsoleLogsTool";
 import ChangeDirTool from "./ChangeDirTool";
 import BrowserResizeTool from "./BrowserResizeTool";
 import DeploySelfTool from "./DeploySelfTool";
-import ToolGroup, { ToolCallData } from "./ToolGroup";
+import ToolGroup from "./ToolGroup";
 import ContextMenu from "./ContextMenu";
 import UsageDetailModal from "./UsageDetailModal";
 
@@ -29,6 +29,15 @@ interface MessageProps {
   message: MessageType;
   followingTools?: ToolCallData[];
   showTools?: boolean;
+  // When showTools=false, consecutive LLM messages are merged into segments
+  mergedSegments?: MessageSegment[];
+  // "inline" (default): show indicators inline with text, merge paragraphs
+  // "block": show indicators but keep paragraphs separate (legacy behavior)
+  // "hidden": don't show indicators
+  indicatorMode?: "inline" | "block" | "hidden";
+  // "single" (default): only expand the clicked indicator
+  // "all": expand all indicators in the same message
+  expansionBehavior?: "single" | "all";
   onOpenDiffViewer?: (commit: string) => void;
 }
 
@@ -61,7 +70,6 @@ function ToolIndicator({ tools, expanded, onClick }: { tools: ToolCallData[]; ex
         e.stopPropagation();
         onClick();
       }}
-
     >
       <span className="tool-inline-indicator-stats">
         {allCompleted ? (
@@ -78,9 +86,11 @@ function ToolIndicator({ tools, expanded, onClick }: { tools: ToolCallData[]; ex
   );
 }
 
-function Message({ message, followingTools, showTools = true, onOpenDiffViewer }: MessageProps) {
+function Message({ message, followingTools, showTools = true, mergedSegments, indicatorMode = "inline", expansionBehavior = "single", onOpenDiffViewer }: MessageProps) {
   // All hooks must be called before any early returns (React Rules of Hooks)
-  const [localToolsExpanded, setLocalToolsExpanded] = useState(false);
+  // For merged segments, track which segment indices are expanded; for single message, use -1 as key
+  const [expandedSegments, setExpandedSegments] = useState<Set<number>>(new Set());
+  const localToolsExpanded = expandedSegments.size > 0;
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
   const [showUsageModal, setShowUsageModal] = useState(false);
   const [longPressTimer, setLongPressTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
@@ -825,6 +835,8 @@ function Message({ message, followingTools, showTools = true, onOpenDiffViewer }
   const getMessageClasses = () => {
     const toolsHidden = !showTools && !localToolsExpanded;
     const hiddenClass = toolsHidden ? " tools-hidden" : "";
+    // When showTools is false and indicatorMode is inline, apply compact paragraph style (even when expanded)
+    const compactClass = !showTools && indicatorMode === "inline" ? " tools-compact" : "";
     if (isUser) {
       return "message message-user";
     }
@@ -832,9 +844,9 @@ function Message({ message, followingTools, showTools = true, onOpenDiffViewer }
       return "message message-error";
     }
     if (isTool) {
-      return "message message-tool" + hiddenClass;
+      return "message message-tool" + hiddenClass + compactClass;
     }
-    return "message message-agent" + hiddenClass;
+    return "message message-agent" + hiddenClass + compactClass;
   };
 
   // Special rendering for error messages
@@ -957,6 +969,115 @@ function Message({ message, followingTools, showTools = true, onOpenDiffViewer }
       ? meaningfulContent
       : llmMessage?.Content?.filter((c) => c.Type === 2 && c.Text?.includes("[Operation")) || [];
 
+  // When mergedSegments is provided, render all segments with proper markdown structure
+  if (mergedSegments && mergedSegments.length > 0) {
+    // Collect all tools from all segments for the expanded view
+    const allTools = mergedSegments.flatMap(seg => seg.followingTools || []);
+    
+    return (
+      <>
+        <div
+          ref={messageRef}
+          className={getMessageClasses()}
+          onContextMenu={handleContextMenu}
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+          onTouchMove={handleTouchMove}
+          style={{ position: "relative" }}
+          data-testid="message"
+          role="article"
+        >
+          <div className="message-content" data-testid="message-content">
+            <div className="markdown-content">
+              {mergedSegments.map((segment, segIndex) => {
+                const hasTools = segment.followingTools && segment.followingTools.length > 0;
+                const isExpanded = expandedSegments.has(segIndex);
+                const suffix = hasTools && indicatorMode === "inline" ? (
+                  <ToolIndicator
+                    tools={segment.followingTools!}
+                    expanded={isExpanded}
+                    onClick={() => {
+                      if (expansionBehavior === "all") {
+                        // Expand/collapse all segments with tools
+                        setExpandedSegments(prev => {
+                          const hasAnyExpanded = mergedSegments.some((_, idx) => prev.has(idx));
+                          if (hasAnyExpanded) {
+                            // Collapse all
+                            return new Set();
+                          } else {
+                            // Expand all segments that have tools
+                            const allWithTools = new Set<number>();
+                            mergedSegments.forEach((seg, idx) => {
+                              if (seg.followingTools && seg.followingTools.length > 0) {
+                                allWithTools.add(idx);
+                              }
+                            });
+                            return allWithTools;
+                          }
+                        });
+                      } else {
+                        // Single mode: toggle just this segment
+                        setExpandedSegments(prev => {
+                          const next = new Set(prev);
+                          if (next.has(segIndex)) {
+                            next.delete(segIndex);
+                          } else {
+                            next.add(segIndex);
+                          }
+                          return next;
+                        });
+                      }
+                    }}
+                  />
+                ) : undefined;
+                
+                return (
+                  <MarkdownRenderer key={segIndex} suffix={suffix}>
+                    {segment.text}
+                  </MarkdownRenderer>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+        {/* Show tools for expanded segments */}
+        {expansionBehavior === "all" ? (
+          // All mode: show all tools combined in one ToolGroup
+          expandedSegments.size > 0 && allTools.length > 0 && (
+            <ToolGroup key="tools-all" tools={allTools} defaultExpanded={true} />
+          )
+        ) : (
+          // Single mode: show each segment's tools separately
+          mergedSegments.map((segment, segIndex) => {
+            const hasTools = segment.followingTools && segment.followingTools.length > 0;
+            const isExpanded = expandedSegments.has(segIndex);
+            if (hasTools && isExpanded) {
+              return (
+                <ToolGroup key={`tools-${segIndex}`} tools={segment.followingTools!} defaultExpanded={true} />
+              );
+            }
+            return null;
+          })
+        )}
+        {contextMenu && contextMenuItems.length > 0 && (
+          <ContextMenu
+            x={contextMenu.x}
+            y={contextMenu.y}
+            onClose={() => setContextMenu(null)}
+            items={contextMenuItems}
+          />
+        )}
+        {showUsageModal && usage && (
+          <UsageDetailModal
+            usage={usage}
+            durationMs={durationMs}
+            onClose={() => setShowUsageModal(false)}
+          />
+        )}
+      </>
+    );
+  }
+
   return (
     <>
       <div
@@ -974,7 +1095,7 @@ function Message({ message, followingTools, showTools = true, onOpenDiffViewer }
         <div className="message-content" data-testid="message-content">
           {(() => {
             // Find the last text content index for inline indicator placement
-            const shouldShowIndicator = followingTools && followingTools.length > 0 && !showTools;
+            const shouldShowIndicator = followingTools && followingTools.length > 0 && !showTools && indicatorMode !== "hidden";
             const lastTextIndex = shouldShowIndicator
               ? contentToRender.reduceRight((acc, content, idx) => {
                   if (acc === -1 && getContentType(content.Type) === "text") return idx;
@@ -986,14 +1107,25 @@ function Message({ message, followingTools, showTools = true, onOpenDiffViewer }
               const isLastText = index === lastTextIndex;
               if (isLastText) {
                 // Render text with inline indicator inside the last paragraph
+                const isExpanded = expandedSegments.has(-1); // Use -1 for single message indicator
                 return (
                   <div key={index} className="markdown-content">
                     <MarkdownRenderer
                       suffix={
                         <ToolIndicator
                           tools={followingTools!}
-                          expanded={localToolsExpanded}
-                          onClick={() => setLocalToolsExpanded(!localToolsExpanded)}
+                          expanded={isExpanded}
+                          onClick={() => {
+                            setExpandedSegments(prev => {
+                              const next = new Set(prev);
+                              if (next.has(-1)) {
+                                next.delete(-1);
+                              } else {
+                                next.add(-1);
+                              }
+                              return next;
+                            });
+                          }}
                         />
                       }
                     >
@@ -1008,8 +1140,8 @@ function Message({ message, followingTools, showTools = true, onOpenDiffViewer }
         </div>
       </div>
       {/* Following tools - show when showTools is true OR locally expanded */}
-      {followingTools && followingTools.length > 0 && (showTools || localToolsExpanded) && (
-        <ToolGroup tools={followingTools} defaultExpanded={localToolsExpanded} />
+      {followingTools && followingTools.length > 0 && (showTools || expandedSegments.has(-1)) && (
+        <ToolGroup tools={followingTools} defaultExpanded={expandedSegments.has(-1)} />
       )}
       {contextMenu && contextMenuItems.length > 0 && (
         <ContextMenu
