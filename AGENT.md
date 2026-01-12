@@ -26,9 +26,13 @@
     ./bin/shelley -config /exe.dev/shelley.json -db /tmp/shelley-test.db serve -port 8002
     ```
     Then use browser tools to navigate to http://localhost:8002/ and interact with the UI.
-12. Do NOT commit without explicit user permission. Always ask before committing.
-13. Before modifying any file, check if there's an AGENT.md in that directory or parent directories. Read it first.
-14. All documentation must be written in English.
-15. Before committing, read [AGENT_COMMITTING.md](./AGENT_COMMITTING.md) for commit message format, branch naming, and PR guidelines.
-16. Before running tests, read [AGENT_TESTING.md](./AGENT_TESTING.md) for testing conventions.
-17. Prioritize code cleanliness over fixing issues that have no practical UX impact. Do not add complexity for theoretical correctness.
+12. To test the production instance (after `deploy_self`), use browser tools to navigate to
+    http://localhost:3000/. If you get errors like "Failed to load conversations", you need
+    to start a mitmproxy to inject auth headers. See [AGENT_TESTING.md](./AGENT_TESTING.md)
+    section "Testing the Production Instance (Port 9999)" for the mitmdump command.
+13. Do NOT commit without explicit user permission. Always ask before committing.
+14. Before modifying any file, check if there's an AGENT.md in that directory or parent directories. Read it first.
+15. All documentation must be written in English.
+16. Before committing, read [AGENT_COMMITTING.md](./AGENT_COMMITTING.md) for commit message format, branch naming, and PR guidelines.
+17. Before running tests, read [AGENT_TESTING.md](./AGENT_TESTING.md) for testing conventions.
+18. Prioritize code cleanliness over fixing issues that have no practical UX impact. Do not add complexity for theoretical correctness.

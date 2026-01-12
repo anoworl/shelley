@@ -460,6 +460,7 @@ function ChatInterface({
   const [showSettings, setShowSettings] = useState(false);
   const [indicatorMode, setIndicatorMode] = useState<"inline" | "block" | "hidden">("inline");
   const [expansionBehavior, setExpansionBehavior] = useState<"single" | "all">("single");
+  const [enterBehavior, setEnterBehavior] = useState<"send" | "stop_and_send">("send");
   const [diffViewerInitialCommit, setDiffViewerInitialCommit] = useState<string | undefined>(
     undefined,
   );
@@ -492,6 +493,7 @@ function ChatInterface({
       const settings = await api.getSettings();
       setIndicatorMode(settings.ui?.indicatorMode ?? "inline");
       setExpansionBehavior(settings.ui?.expansionBehavior ?? "single");
+      setEnterBehavior(settings.ui?.enterBehavior ?? "send");
     } catch (err) {
       console.error("Failed to load settings:", err);
     }
@@ -696,7 +698,10 @@ function ChatInterface({
   };
 
   const sendMessage = async (message: string) => {
-    if (!message.trim() || sending) return;
+    if (!message.trim()) return;
+    if (sending) {
+      throw new Error("Already sending");
+    }
 
     // Optimistic update: immediately show user message
     const optimisticMessage: Message = {
@@ -769,6 +774,7 @@ function ChatInterface({
     } catch (err) {
       console.error("Failed to cancel conversation:", err);
       setError("Failed to cancel. Please try again.");
+      throw err; // Re-throw so callers know cancel failed
     } finally {
       setCancelling(false);
     }
@@ -1615,13 +1621,16 @@ function ChatInterface({
             setMobileInputVisible(false);
           }
         }}
-        disabled={sending || loading}
+        disabled={loading}
         autoFocus={mobileInputVisible}
         injectedText={diffCommentText}
         onClearInjectedText={() => setDiffCommentText("")}
         persistKey={conversationId || "new-conversation"}
         mobileVisible={mobileInputVisible || !conversationId}
         onMobileBlur={() => setMobileInputVisible(false)}
+        agentWorking={agentWorking}
+        onCancel={handleCancel}
+        enterBehavior={enterBehavior}
       />
 
       {/* Directory Picker Modal */}

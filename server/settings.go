@@ -27,6 +27,10 @@ type UISettings struct {
 	// "single" (default): only expand the clicked indicator
 	// "all": expand all indicators in the same message
 	ExpansionBehavior string `json:"expansionBehavior,omitempty"`
+	// EnterBehavior controls what happens when Enter is pressed while agent is working
+	// "send" (default): normal send, button disabled while agent is working
+	// "stop_and_send": automatically stop agent and send new message
+	EnterBehavior string `json:"enterBehavior,omitempty"`
 }
 
 // GuardianSettings contains settings for the guardian AI
@@ -60,6 +64,7 @@ func DefaultSettings() Settings {
 		UI: &UISettings{
 			IndicatorMode:     "inline",
 			ExpansionBehavior: "single",
+			EnterBehavior:     "send",
 		},
 	}
 }

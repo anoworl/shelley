@@ -146,6 +146,9 @@ export interface UISettings {
   // "single" (default): only expand the clicked indicator
   // "all": expand all indicators in the same message
   expansionBehavior?: "single" | "all";
+  // "send" (default): normal send, button disabled while agent is working
+  // "stop_and_send": automatically stop agent and send new message
+  enterBehavior?: "send" | "stop_and_send";
 }
 
 export interface Settings {
