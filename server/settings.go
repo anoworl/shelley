@@ -23,6 +23,10 @@ type UISettings struct {
 	// "block": show indicators but keep paragraphs separate (legacy behavior)
 	// "hidden": don't show indicators
 	IndicatorMode string `json:"indicatorMode,omitempty"`
+	// ExpansionBehavior controls how inline indicators expand (only applies when IndicatorMode is "inline")
+	// "single" (default): only expand the clicked indicator
+	// "all": expand all indicators in the same message
+	ExpansionBehavior string `json:"expansionBehavior,omitempty"`
 }
 
 // GuardianSettings contains settings for the guardian AI
@@ -54,7 +58,8 @@ func DefaultSettings() Settings {
 			},
 		},
 		UI: &UISettings{
-			IndicatorMode: "inline",
+			IndicatorMode:     "inline",
+			ExpansionBehavior: "single",
 		},
 	}
 }

@@ -41,6 +41,9 @@ interface MessageProps {
   // "block": show indicators but keep paragraphs separate (legacy behavior)
   // "hidden": don't show indicators
   indicatorMode?: "inline" | "block" | "hidden";
+  // "single" (default): only expand the clicked indicator
+  // "all": expand all indicators in the same message
+  expansionBehavior?: "single" | "all";
   onOpenDiffViewer?: (commit: string) => void;
 }
 
@@ -73,7 +76,6 @@ function ToolIndicator({ tools, expanded, onClick }: { tools: ToolCallData[]; ex
         e.stopPropagation();
         onClick();
       }}
-
     >
       <span className="tool-inline-indicator-stats">
         {allCompleted ? (
@@ -90,7 +92,7 @@ function ToolIndicator({ tools, expanded, onClick }: { tools: ToolCallData[]; ex
   );
 }
 
-function Message({ message, followingTools, showTools = true, mergedSegments, indicatorMode = "inline", onOpenDiffViewer }: MessageProps) {
+function Message({ message, followingTools, showTools = true, mergedSegments, indicatorMode = "inline", expansionBehavior = "single", onOpenDiffViewer }: MessageProps) {
   // All hooks must be called before any early returns (React Rules of Hooks)
   // For merged segments, track which segment indices are expanded; for single message, use -1 as key
   const [expandedSegments, setExpandedSegments] = useState<Set<number>>(new Set());
@@ -1001,15 +1003,36 @@ function Message({ message, followingTools, showTools = true, mergedSegments, in
                     tools={segment.followingTools!}
                     expanded={isExpanded}
                     onClick={() => {
-                      setExpandedSegments(prev => {
-                        const next = new Set(prev);
-                        if (next.has(segIndex)) {
-                          next.delete(segIndex);
-                        } else {
-                          next.add(segIndex);
-                        }
-                        return next;
-                      });
+                      if (expansionBehavior === "all") {
+                        // Expand/collapse all segments with tools
+                        setExpandedSegments(prev => {
+                          const hasAnyExpanded = mergedSegments.some((_, idx) => prev.has(idx));
+                          if (hasAnyExpanded) {
+                            // Collapse all
+                            return new Set();
+                          } else {
+                            // Expand all segments that have tools
+                            const allWithTools = new Set<number>();
+                            mergedSegments.forEach((seg, idx) => {
+                              if (seg.followingTools && seg.followingTools.length > 0) {
+                                allWithTools.add(idx);
+                              }
+                            });
+                            return allWithTools;
+                          }
+                        });
+                      } else {
+                        // Single mode: toggle just this segment
+                        setExpandedSegments(prev => {
+                          const next = new Set(prev);
+                          if (next.has(segIndex)) {
+                            next.delete(segIndex);
+                          } else {
+                            next.add(segIndex);
+                          }
+                          return next;
+                        });
+                      }
                     }}
                   />
                 ) : undefined;
@@ -1024,16 +1047,24 @@ function Message({ message, followingTools, showTools = true, mergedSegments, in
           </div>
         </div>
         {/* Show tools for expanded segments */}
-        {mergedSegments.map((segment, segIndex) => {
-          const hasTools = segment.followingTools && segment.followingTools.length > 0;
-          const isExpanded = expandedSegments.has(segIndex);
-          if (hasTools && isExpanded) {
-            return (
-              <ToolGroup key={`tools-${segIndex}`} tools={segment.followingTools!} defaultExpanded={true} />
-            );
-          }
-          return null;
-        })}
+        {expansionBehavior === "all" ? (
+          // All mode: show all tools combined in one ToolGroup
+          expandedSegments.size > 0 && allTools.length > 0 && (
+            <ToolGroup key="tools-all" tools={allTools} defaultExpanded={true} />
+          )
+        ) : (
+          // Single mode: show each segment's tools separately
+          mergedSegments.map((segment, segIndex) => {
+            const hasTools = segment.followingTools && segment.followingTools.length > 0;
+            const isExpanded = expandedSegments.has(segIndex);
+            if (hasTools && isExpanded) {
+              return (
+                <ToolGroup key={`tools-${segIndex}`} tools={segment.followingTools!} defaultExpanded={true} />
+              );
+            }
+            return null;
+          })
+        )}
         {contextMenu && contextMenuItems.length > 0 && (
           <ContextMenu
             x={contextMenu.x}

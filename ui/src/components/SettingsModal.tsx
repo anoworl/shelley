@@ -117,6 +117,30 @@ function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
             <p className="settings-field-description">
               Controls how tool execution indicators are displayed when tools are collapsed.
             </p>
+
+            {settings.ui?.indicatorMode === "inline" && (
+              <>
+                <div className="settings-row">
+                  <label className="settings-label">Expansion Behavior</label>
+                  <select
+                    className="settings-select"
+                    value={settings.ui?.expansionBehavior ?? "single"}
+                    onChange={(e) =>
+                      setSettings((prev) => ({
+                        ...prev,
+                        ui: { ...prev.ui, expansionBehavior: e.target.value as "single" | "all" },
+                      }))
+                    }
+                  >
+                    <option value="single">Single (expand only clicked indicator)</option>
+                    <option value="all">All (expand all indicators in message)</option>
+                  </select>
+                </div>
+                <p className="settings-field-description">
+                  Controls whether clicking an indicator expands just that one or all indicators in the message.
+                </p>
+              </>
+            )}
           </div>
 
           <div className="settings-section">

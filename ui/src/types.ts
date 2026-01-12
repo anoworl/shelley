@@ -143,6 +143,9 @@ export interface UISettings {
   // "block": show indicators but keep paragraphs separate (legacy behavior)
   // "hidden": don't show indicators
   indicatorMode?: "inline" | "block" | "hidden";
+  // "single" (default): only expand the clicked indicator
+  // "all": expand all indicators in the same message
+  expansionBehavior?: "single" | "all";
 }
 
 export interface Settings {
