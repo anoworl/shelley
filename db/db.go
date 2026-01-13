@@ -66,7 +66,7 @@ func New(cfg Config) (*DB, error) {
 		}
 	}
 
-	// Create connection pool with 3 readers
+	// Create connection pool with 10 readers for multi-pane UI support
 	// libSQL requires file: prefix for local files
 	dsn := cfg.DSN
 	if !strings.HasPrefix(dsn, "file:") && !strings.HasPrefix(dsn, "libsql:") && !strings.HasPrefix(dsn, "http") {
@@ -78,7 +78,7 @@ func New(cfg Config) (*DB, error) {
 		dsn += "&_foreign_keys=on"
 	}
 
-	pool, err := NewPool(dsn, 3)
+	pool, err := NewPool(dsn, 10)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create connection pool: %w", err)
 	}
