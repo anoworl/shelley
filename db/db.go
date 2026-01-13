@@ -78,7 +78,7 @@ func New(cfg Config) (*DB, error) {
 		dsn += "&_foreign_keys=on"
 	}
 
-	pool, err := NewPool(dsn, 3)
+	pool, err := NewPool(dsn, 10)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create connection pool: %w", err)
 	}

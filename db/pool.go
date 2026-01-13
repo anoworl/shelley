@@ -39,12 +39,27 @@ func NewPool(dataSourceName string, readerCount int) (*Pool, error) {
 		return nil, fmt.Errorf("NewPool: %w", err)
 	}
 
+	// Performance PRAGMAs to apply to each connection
+	perfPragmas := []string{
+		"PRAGMA mmap_size = 1073741824;",  // 1GB - use OS page cache for reads
+		"PRAGMA cache_size = -65536;",     // 64MB (negative = KB)
+	}
+
 	var conns []*sql.Conn
 	for i := 0; i < numConns; i++ {
 		conn, err := db.Conn(context.Background())
 		if err != nil {
 			db.Close()
 			return nil, fmt.Errorf("NewPool: %w", err)
+		}
+		for _, pragma := range perfPragmas {
+			// Use QueryContext because PRAGMAs return rows
+			rows, err := conn.QueryContext(context.Background(), pragma)
+			if err != nil {
+				db.Close()
+				return nil, fmt.Errorf("NewPool pragma: %w", err)
+			}
+			rows.Close()
 		}
 		conns = append(conns, conn)
 	}
