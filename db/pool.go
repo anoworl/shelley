@@ -56,6 +56,10 @@ func NewPool(dataSourceName string, readerCount int) (*Pool, error) {
 			// Use QueryContext because PRAGMAs return rows
 			rows, err := conn.QueryContext(context.Background(), pragma)
 			if err != nil {
+				conn.Close()
+				for _, c := range conns {
+					c.Close()
+				}
 				db.Close()
 				return nil, fmt.Errorf("NewPool pragma: %w", err)
 			}
