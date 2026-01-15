@@ -214,14 +214,15 @@ func TestUploadPreservesFileExtension(t *testing.T) {
 	server := NewServer(database, llmManager, claudetool.ToolSetConfig{}, logger, true, "", "predictable", "", nil)
 
 	testCases := []struct {
-		filename string
-		wantExt  string
+		filename  string
+		wantExt   string
+		shouldFail bool
 	}{
-		{"photo.png", ".png"},
-		{"image.jpeg", ".jpeg"},
-		{"screenshot.gif", ".gif"},
-		{"document.pdf", ".pdf"},
-		{"noextension", ""},
+		{"photo.png", ".png", false},
+		{"image.jpeg", ".jpeg", false},
+		{"screenshot.gif", ".gif", false},
+		{"document.pdf", ".pdf", true},
+		{"noextension", "", true},
 	}
 
 	for _, tc := range testCases {
@@ -242,8 +243,15 @@ func TestUploadPreservesFileExtension(t *testing.T) {
 
 			server.handleUpload(w, req)
 
+			if tc.shouldFail {
+				if w.Code != http.StatusBadRequest {
+					t.Fatalf("expected status 400 for %s, got %d", tc.filename, w.Code)
+				}
+				return
+			}
+
 			if w.Code != http.StatusOK {
-				t.Fatalf("expected status 200, got %d", w.Code)
+				t.Fatalf("expected status 200 for %s, got %d: %s", tc.filename, w.Code, w.Body.String())
 			}
 
 			var response map[string]string
