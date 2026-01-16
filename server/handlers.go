@@ -110,6 +110,23 @@ func (s *Server) handleWriteFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Check if the path contains .git to prevent repository corruption
+	parts := strings.Split(clean, string(os.PathSeparator))
+	for _, part := range parts {
+		if strings.ToLower(part) == ".git" {
+			http.Error(w, "cannot write to .git directory", http.StatusForbidden)
+			return
+		}
+	}
+
+	// Check if the directory is within a git repository
+	dir := filepath.Dir(clean)
+	state := gitstate.GetGitState(dir)
+	if !state.IsRepo {
+		http.Error(w, "path must be within a git repository", http.StatusForbidden)
+		return
+	}
+
 	// Write the file
 	if err := os.WriteFile(clean, []byte(req.Content), 0o644); err != nil {
 		http.Error(w, fmt.Sprintf("failed to write file: %v", err), http.StatusInternalServerError)
