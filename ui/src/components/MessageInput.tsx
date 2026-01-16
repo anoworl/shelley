@@ -52,9 +52,9 @@ interface MessageInputProps {
   onClearInjectedText?: () => void;
   /** If set, persist draft message to localStorage under this key */
   persistKey?: string;
-  /** On mobile, whether input is visible */
+  /** On mobile/compact mode, whether input is visible */
   mobileVisible?: boolean;
-  /** Called when input loses focus on mobile (to hide it) */
+  /** Called when input loses focus on mobile/compact mode (to hide it) */
   onMobileBlur?: () => void;
   /** Whether the agent is currently working */
   agentWorking?: boolean;
@@ -62,6 +62,8 @@ interface MessageInputProps {
   onCancel?: () => Promise<void>;
   /** Enter key behavior setting */
   enterBehavior?: "send" | "stop_and_send";
+  /** Compact mode (multi-pane layout) */
+  compact?: boolean;
 }
 
 const PERSIST_KEY_PREFIX = "shelley_draft_";
@@ -79,6 +81,7 @@ function MessageInput({
   agentWorking = false,
   onCancel,
   enterBehavior = "send",
+  compact = false,
 }: MessageInputProps) {
   const [message, setMessage] = useState(() => {
     // Load persisted draft if persistKey is set
@@ -420,8 +423,8 @@ function MessageInput({
   // Check if we're on mobile
   const isMobile = typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches;
   
-  // On mobile, hide if not visible (unless there's draft text)
-  if (isMobile && !mobileVisible && !message.trim()) {
+  // In compact mode or on mobile, hide if not visible (unless there's draft text)
+  if ((isMobile || compact) && !mobileVisible && !message.trim()) {
     return null;
   }
 
@@ -468,7 +471,7 @@ function MessageInput({
           aria-label="Message input"
           data-testid="message-input"
           autoFocus={autoFocus}
-          placeholder={isMobile ? "" : "Message, paste image, or attach file..."}
+          placeholder={(isMobile || compact) ? "" : "Message, paste image, or attach file..."}
         />
         {speechRecognitionAvailable && (
           <button

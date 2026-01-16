@@ -1,6 +1,6 @@
-# Shelley: a coding agent for exe.dev
+# Shelley (anoworl fork): a coding agent for exe.dev
 
-This repository is a fork of [boldsoftware/shelley](https://github.com/boldsoftware/shelley) (base: `6bfc75b`).
+This repository is a fork of [boldsoftware/shelley](https://github.com/boldsoftware/shelley) (forked from `6bfc75b`, regularly synced with upstream).
 Fork goal: Battle-tested tweaks from heavy daily use. See `FORK_NOTES.md` for details.
 
 ---
@@ -26,21 +26,37 @@ bring your own.
 
 ### First Time Setup
 
-Connect via SSH (or terminal), then:
+1. If you don't have a VM yet, create one at https://exe.dev/new
 
-```bash
-# Install Node.js first if not already installed (pnpm is managed via corepack)
-git clone https://github.com/anoworl/shelley.git ~/shelley
-cd ~/shelley
-make deploy
-```
+2. Go to the VM list at https://exe.dev/ and click the **Terminal** button for your VM
+
+3. Install, setup, and deploy:
+   ```bash
+   # Install nvm (Node Version Manager) if needed
+   curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
+   source ~/.bashrc
+
+   # Clone the repository
+   git clone https://github.com/anoworl/shelley.git
+   cd shelley/ui
+
+   # Setup Node.js environment
+   nvm install
+   corepack enable pnpm
+   cd ..
+
+   # Build and deploy (on first run, press Enter when prompted to download pnpm)
+   make deploy
+   ```
+
+4. Go to https://exe.dev/ and click the **Agent** button for your VM
 
 ### Updating
 
 Ask Shelley to update itself:
 
 ```
-cd /home/exedev/shelley && git pull && make build-linux, then deploy
+cd /home/exedev/shelley && git pull && make build-linux, then deploy_self
 ```
 
 Shelley will build and use the `deploy_self` tool to restart itself.

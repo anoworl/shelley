@@ -356,16 +356,7 @@ button {
   opacity: 0.7;
 }
 
-.conversation-item.active .btn-icon-sm {
-  color: rgba(255, 255, 255, 0.8);
-  opacity: 0.7;
-}
-
-.conversation-item.active .btn-icon-sm:hover {
-  background: rgba(255, 255, 255, 0.2);
-  color: white;
-  opacity: 1;
-}
+/* .conversation-item.active .btn-icon-sm - no longer needed, using default styles */
 
 .btn-icon-sm.btn-danger:hover {
   background: var(--red-600);
@@ -390,8 +381,8 @@ button {
 }
 
 .btn-vscode svg {
-  width: 0.875rem;
-  height: 0.875rem;
+  width: 0.75rem;
+  height: 0.75rem;
 }
 
 .btn-new {
@@ -425,6 +416,11 @@ button {
 
 .btn-tool-toggle:hover {
   filter: brightness(1.1);
+}
+
+.btn-tool-toggle svg {
+  width: 0.875rem !important;
+  height: 0.875rem !important;
 }
 
 .btn-tool-toggle.tools-hidden {
@@ -505,6 +501,50 @@ button {
   gap: 0.5rem;
 }
 
+/* Header focus is now handled by pane border */
+
+/* Header state colors - priority: disconnected > error > context */
+.header-disconnected {
+  background: rgba(249, 115, 22, 0.15);
+}
+
+.header-error {
+  background: rgba(239, 68, 68, 0.15);
+}
+
+.header-context-warning {
+  background: rgba(234, 179, 8, 0.15);
+}
+
+.header-context-danger {
+  background: rgba(239, 68, 68, 0.12);
+}
+
+/* Header status badges */
+.header-status-badge {
+  font-size: 0.6875rem;
+  padding: 0.125rem 0.5rem;
+  border-radius: 0.25rem;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.header-status-disconnected {
+  background: rgba(249, 115, 22, 0.2);
+  color: rgb(234, 88, 12);
+  border: none;
+  cursor: pointer;
+}
+
+.header-status-disconnected:hover {
+  background: rgba(249, 115, 22, 0.3);
+}
+
+.header-status-error {
+  background: rgba(239, 68, 68, 0.2);
+  color: rgb(220, 38, 38);
+}
+
 .header-left {
   display: flex;
   align-items: center;
@@ -522,6 +562,20 @@ button {
   white-space: nowrap;
   letter-spacing: -0.02em;
   min-width: 0; /* Allow shrinking */
+}
+
+.pane-cwd {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 200px;
+  flex-shrink: 1;
+  min-width: 0;
+  margin-left: auto;
+  margin-right: 0.25rem;
+  text-align: right;
 }
 
 .header-actions {
@@ -588,7 +642,7 @@ button {
 
 .drawer-header {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: space-between;
   padding: 0.5rem 1rem;
   border-bottom: 1px solid var(--border);
@@ -598,12 +652,15 @@ button {
   display: flex;
   align-items: center;
   gap: 0.25rem;
+  margin-left: auto;
 }
 
 .drawer-title-row {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
+  flex: 1;
+  min-width: 0;
 }
 
 .drawer-title {
@@ -628,16 +685,141 @@ button {
   overflow-y: auto;
   min-height: 0;
   padding-bottom: env(safe-area-inset-bottom);
+  display: flex;
+  flex-direction: column;
 }
 
-.drawer-section {
-  padding: 1rem;
-  border-bottom: 1px solid var(--border);
+.drawer-close-area {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.5rem;
+  margin-top: auto;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--text-tertiary);
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.drawer-close-area:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+}
+
+.drawer-close-area svg {
+  width: 1.25rem;
+  height: 1.25rem;
 }
 
 .drawer-footer {
-  padding: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.5rem 0.75rem;
   border-top: 1px solid var(--border);
+  background: var(--bg-secondary);
+  flex-shrink: 0;
+}
+
+.drawer-footer-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: none;
+  border-radius: 0.375rem;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+  text-decoration: none;
+}
+
+.drawer-footer-btn:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.drawer-footer-btn.active {
+  background: var(--bg-tertiary);
+  color: var(--accent-color);
+}
+
+.drawer-footer-btn svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+/* Theme picker - hover to show options */
+.theme-picker {
+  position: relative;
+  margin-left: auto;
+}
+
+.theme-picker-current {
+  position: relative;
+  z-index: 1;
+}
+
+.theme-picker-popup {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.5rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.15);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.15s ease, visibility 0.15s ease;
+}
+
+.theme-picker:hover .theme-picker-popup {
+  opacity: 1;
+  visibility: visible;
+}
+
+.theme-picker-option {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: none;
+  border-radius: 0.375rem;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.theme-picker-option:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.theme-picker-option.active {
+  background: rgba(59, 130, 246, 0.2);
+  color: var(--accent-color);
+  box-shadow: inset 0 0 0 1.5px var(--accent-color);
+}
+
+.theme-picker-option.active:hover {
+  background: rgba(59, 130, 246, 0.3);
+}
+
+.theme-picker-option svg {
+  width: 1.25rem;
+  height: 1.25rem;
 }
 
 /* Backdrop */
@@ -687,8 +869,7 @@ button {
 }
 
 .conversation-item.active {
-  background: var(--primary);
-  color: white;
+  background: var(--bg-tertiary);
 }
 
 .conversation-item .conversation-title {
@@ -700,18 +881,43 @@ button {
   white-space: nowrap;
 }
 
-.conversation-item .agent-status-indicator {
+.agent-status-indicator {
   width: 0.5rem;
   height: 0.5rem;
   border-radius: 50%;
   flex-shrink: 0;
   align-self: center;
+}
+
+.conversation-item .agent-status-indicator {
   margin-right: 0.375rem;
+}
+
+.header-left .agent-status-indicator {
+  margin-right: 0.25rem;
 }
 
 .agent-status-indicator.working {
   background-color: var(--success-color, #22c55e);
   animation: pulse 1.5s ease-in-out infinite;
+}
+
+.agent-status-indicator.working.clickable {
+  cursor: pointer;
+  border: none;
+  padding: 0;
+  transition: background-color 0.15s ease, border-radius 0.15s ease;
+}
+
+.agent-status-indicator.working.clickable:hover {
+  background-color: var(--error-text, #ef4444);
+  border-radius: 2px;
+  animation: none;
+}
+
+.agent-status-indicator.working.clickable:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .agent-status-indicator.stopped {
@@ -745,9 +951,7 @@ button {
   flex-shrink: 0;
 }
 
-.conversation-item.active .conversation-meta {
-  color: rgba(255, 255, 255, 0.8);
-}
+/* .conversation-item.active .conversation-meta - no longer needed, using default color */
 
 .conversation-item .conversation-cwd {
   font-family: var(--font-mono);
@@ -776,13 +980,7 @@ button {
   /* color set via inline style based on percentage */
 }
 
-.conversation-item.active .conversation-context-bar {
-  background-color: rgba(255, 255, 255, 0.3);
-}
-
-.conversation-item.active .conversation-context-fill {
-  background-color: rgba(255, 255, 255, 0.8);
-}
+/* .conversation-item.active context bar - no longer needed, using default styles */
 
 /* Messages */
 .messages-container {
@@ -2066,7 +2264,7 @@ select:disabled {
 
 .status-message {
   color: var(--text-secondary);
-  font-size: 0.875rem;
+  font-size: 0.75rem;
   flex: 1;
   min-width: 0;
 }
@@ -2387,8 +2585,52 @@ svg {
 /* Responsive adjustments */
 @media (min-width: 768px) {
   .drawer {
-    position: static;
-    transform: translateX(0) !important;
+    position: relative;
+    flex-shrink: 0;
+    transition: width 0.15s ease;
+    transform: none;
+  }
+
+  .drawer:not(.open) {
+    width: 1.5rem;
+    min-width: 1.5rem;
+    border-right: 1px solid var(--border);
+  }
+
+  /* Hide content when closed, show only the toggle button */
+  .drawer:not(.open) .drawer-header,
+  .drawer:not(.open) .drawer-body {
+    display: none;
+  }
+
+  /* Show collapsed sidebar content */
+  .drawer-collapsed {
+    display: none;
+  }
+
+  .drawer:not(.open) .drawer-collapsed {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem 0.25rem;
+    height: 100%;
+    width: 100%;
+    background: var(--bg-secondary);
+    box-sizing: border-box;
+    cursor: pointer;
+    border: none;
+    outline: none;
+  }
+
+  .drawer:not(.open) .drawer-collapsed:hover {
+    background: var(--bg-tertiary);
+  }
+
+  .drawer:not(.open) .drawer-collapsed svg {
+    width: 1rem;
+    height: 1rem;
+    color: var(--text-primary);
   }
 
   .hide-on-desktop {
@@ -2494,6 +2736,8 @@ svg {
   align-items: center;
   gap: 0.25rem;
   min-width: 0; /* Allow flex items to shrink below content size */
+  position: relative;
+  z-index: 1; /* Ensure fields are above ::before pseudo-element for touch */
 }
 
 .status-field-label {
@@ -2830,6 +3074,7 @@ svg {
     left: 0;
     right: 0;
     bottom: 0;
+    pointer-events: none;
   }
 }
 
@@ -2842,16 +3087,17 @@ svg {
 .status-stop-button {
   display: flex;
   align-items: center;
-  gap: 0.25rem;
-  padding: 0.25rem 0.5rem;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
   border: none;
-  border-radius: 0.25rem;
+  border-radius: 50%;
   background: var(--error-bg);
   color: var(--error-text);
   cursor: pointer;
   transition: all 0.15s ease;
-  font-size: 0.75rem;
-  font-weight: 500;
+  flex-shrink: 0;
 }
 
 .status-stop-button:hover:not(:disabled) {
@@ -2865,8 +3111,8 @@ svg {
 }
 
 .status-stop-button svg {
-  width: 0.75rem;
-  height: 0.75rem;
+  width: 0.5rem;
+  height: 0.5rem;
   flex-shrink: 0;
 }
 
@@ -2874,15 +3120,7 @@ svg {
   white-space: nowrap;
 }
 
-/* Hide stop label on small screens */
-@media (max-width: 500px) {
-  .status-stop-label {
-    display: none;
-  }
-  .status-stop-button {
-    padding: 0.25rem;
-  }
-}
+
 
 /* Extend tap area on mobile */
 @media (max-width: 767px) {
@@ -2892,10 +3130,10 @@ svg {
   .status-stop-button::before {
     content: '';
     position: absolute;
-    top: -0.75rem;
+    top: -0.5rem;
     left: -0.5rem;
     right: -0.5rem;
-    bottom: -0.25rem;
+    bottom: -0.5rem;
   }
 }
 
@@ -2917,88 +3155,8 @@ svg {
 }
 
 /* Mobile optimizations for tighter spacing */
-@media (max-width: 767px) {
-  .header {
-    padding: 0 0.5rem;
-    padding-top: env(safe-area-inset-top, 0px);
-    gap: 0.25rem;
-    height: 1.5rem;
-    min-height: 0;
-    overflow: visible;
-    box-sizing: content-box;
-  }
-
-  .header-info {
-    display: none;
-  }
-
-  .header-title {
-    font-size: 0.75rem;
-    font-weight: 400;
-  }
-
-  .header-left {
-    gap: 0.25rem;
-  }
-
-  .header-actions {
-    gap: 0.375rem;
-  }
-
-  .header .btn-icon,
-  .header .btn-new {
-    width: 1rem;
-    height: 1rem;
-    padding: 0;
-    border-radius: 0.25rem;
-    position: relative;
-  }
-
-  .header .btn-icon::before,
-  .header .btn-new::before {
-    content: '';
-    position: absolute;
-    top: -0.5rem;
-    left: -0.5rem;
-    right: -0.5rem;
-    bottom: -0.5rem;
-  }
-
-  .header .btn-icon svg,
-  .header .btn-new svg {
-    width: 0.625rem;
-    height: 0.625rem;
-  }
-
-  .header .btn-vscode {
-    display: none;
-  }
-
-  .status-bar {
-    padding: 0.375rem 0.75rem;
-    min-height: 2rem;
-  }
-
-  .status-bar-active {
-    justify-content: center;
-    gap: 0.75rem;
-  }
-
-  .status-bar-active .status-message,
-  .status-bar-active .status-working-group {
-    flex: none;
-  }
-
-  .message-input-container {
-    padding: 0.5rem 0.75rem;
-  }
-
-  /* Wrap diff content on mobile */
-  .patch-diff-line-content {
-    white-space: pre-wrap;
-    word-break: break-all;
-  }
-}
+/* Mobile styles now handled via .compact-mode class applied by JS */
+/* See useIsMobile() hook in PaneGrid.tsx */
 
 /* Print styles - looks like the chat window, just without chrome */
 @media print {
@@ -3653,6 +3811,11 @@ svg {
 }
 
 /* Settings Modal */
+/* Settings modal - wider than default */
+.settings-modal .modal {
+  max-width: 600px;
+}
+
 .settings-loading {
   text-align: center;
   padding: 2rem;
@@ -4158,4 +4321,283 @@ svg {
 
 .markdown-content a.text-link:hover {
   text-decoration: none;
+}
+
+/* ===== Multi-pane layout ===== */
+
+/* Pane grid */
+.pane-grid {
+  width: 100%;
+  height: 100%;
+}
+
+.pane {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid transparent;
+}
+
+.pane-focused {
+  border-color: rgba(59, 130, 246, 0.5);
+}
+
+.pane-empty {
+  /* Empty panes are just blank */
+}
+
+
+
+.pane-header-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1rem;
+  height: 1rem;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.pane-header-btn:hover {
+  color: var(--text-primary);
+}
+
+.pane-header-btn svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+/* Column selector */
+.grid-selector {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.25rem;
+}
+
+.grid-selector-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.grid-selector-row {
+  display: flex;
+  align-items: center;
+  gap: 0.125rem;
+}
+
+.grid-selector-btn {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 0.125rem 0.25rem;
+  font-size: 0.625rem;
+  border-radius: 2px;
+  transition: background-color 0.15s, color 0.15s;
+  line-height: 1;
+}
+
+.grid-selector-btn:hover:not(:disabled) {
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.grid-selector-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.grid-selector-value {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  min-width: 1rem;
+  text-align: center;
+  line-height: 1;
+}
+
+.grid-selector-direction-icon {
+  width: 0.875rem;
+  height: 0.875rem;
+  color: var(--text-tertiary);
+  margin-left: 0.125rem;
+}
+
+/* Conversation item "open" indicator */
+.conversation-item.open {
+  border-left: 3px solid var(--gray-400);
+  padding-left: calc(0.75rem - 3px);
+}
+
+/* open but not active - no background, just the border */
+
+/* Compact mode styles (for multi-pane layout and mobile) */
+.compact-mode .messages-container {
+  padding: 0.5rem;
+}
+
+.compact-mode .header {
+  padding: 0 0.5rem;
+  padding-top: env(safe-area-inset-top, 0px);
+  gap: 0.25rem;
+  height: 1.5rem;
+  min-height: 0;
+  overflow: visible;
+  box-sizing: content-box;
+}
+
+.compact-mode .header-info {
+  display: none;
+}
+
+.compact-mode .header-title {
+  font-size: 0.75rem;
+  font-weight: 400;
+}
+
+.compact-mode .header-left {
+  gap: 0.25rem;
+}
+
+.compact-mode .header-actions {
+  gap: 0.375rem;
+}
+
+.compact-mode .header .btn-icon,
+.compact-mode .header .btn-new,
+.compact-mode .header .btn-tool-toggle,
+.compact-mode .header .btn-vscode {
+  width: 1rem;
+  height: 1rem;
+  padding: 0;
+  border-radius: 0;
+  position: relative;
+}
+
+.compact-mode .header .btn-icon::before,
+.compact-mode .header .btn-new::before,
+.compact-mode .header .btn-tool-toggle::before {
+  content: '';
+  position: absolute;
+  top: -0.5rem;
+  left: -0.5rem;
+  right: -0.5rem;
+  bottom: -0.5rem;
+}
+
+.compact-mode .header .btn-new svg {
+  width: 0.625rem;
+  height: 0.625rem;
+}
+
+.compact-mode .header .btn-icon svg,
+.compact-mode .header .btn-tool-toggle svg {
+  width: 0.5rem;
+  height: 0.5rem;
+}
+
+/* VSCode button: hidden on mobile, shown on desktop even in compact mode */
+.compact-mode .header .btn-vscode {
+  display: none;
+}
+
+.compact-mode .header .btn-vscode svg {
+  width: 0.5rem;
+  height: 0.5rem;
+}
+
+@media (min-width: 769px) {
+  .compact-mode .header .btn-vscode {
+    display: flex;
+    width: 1rem;
+    height: 1rem;
+  }
+}
+
+.compact-mode .status-bar {
+  padding: 0 0.5rem;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  height: 1.5rem;
+  min-height: 0;
+  box-sizing: content-box;
+}
+
+/* New conversation status bar needs more height for model/dir selectors */
+.compact-mode .status-bar:has(.status-bar-new-conversation) {
+  height: auto;
+  padding: 0.375rem 0.5rem;
+  padding-bottom: calc(0.375rem + env(safe-area-inset-bottom, 0px));
+}
+
+.compact-mode .status-bar-active {
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.compact-mode .status-bar-active .status-message,
+.compact-mode .status-bar-active .status-working-group {
+  flex: none;
+}
+
+.compact-mode .status-stop-button {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.compact-mode .status-stop-button svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.compact-mode .message-input-container {
+  padding: 0.5rem 0.75rem;
+}
+
+.compact-mode .patch-diff-line-content {
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+/* Input Modal */
+.input-modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.input-modal {
+  background-color: var(--bg-primary);
+  border-radius: 0.5rem;
+  width: 100%;
+  max-width: 600px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+  position: relative;
+  z-index: 1001;
+}
+
+.input-modal-title {
+  padding: 0.75rem 1rem;
+  font-weight: 500;
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-primary);
+  background-color: var(--bg-primary);
+}
+
+.input-modal .message-input-container {
+  padding: 1rem;
 }

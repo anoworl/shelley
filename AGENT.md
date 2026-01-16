@@ -36,3 +36,4 @@
 16. Before committing, read [AGENT_COMMITTING.md](./AGENT_COMMITTING.md) for commit message format, branch naming, and PR guidelines.
 17. Before running tests, read [AGENT_TESTING.md](./AGENT_TESTING.md) for testing conventions.
 18. Prioritize code cleanliness over fixing issues that have no practical UX impact. Do not add complexity for theoretical correctness.
+19. **⚠️ CRITICAL: NEVER run `systemctl stop/start/restart shelley` directly!** This will terminate the Shelley instance you are running under. Always use the `deploy_self` tool for deployments. Build first with `make build-linux`, then call `deploy_self` with the binary path.

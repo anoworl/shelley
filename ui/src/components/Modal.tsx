@@ -5,9 +5,10 @@ interface ModalProps {
   onClose: () => void;
   title: string;
   children: React.ReactNode;
+  className?: string;
 }
 
-function Modal({ isOpen, onClose, title, children }: ModalProps) {
+function Modal({ isOpen, onClose, title, children, className }: ModalProps) {
   if (!isOpen) return null;
 
   const handleBackdropClick = (e: React.MouseEvent) => {
@@ -17,7 +18,7 @@ function Modal({ isOpen, onClose, title, children }: ModalProps) {
   };
 
   return (
-    <div className="modal-overlay" onClick={handleBackdropClick}>
+    <div className={`modal-overlay ${className || ''}`} onClick={handleBackdropClick}>
       <div className="modal">
         {/* Header */}
         <div className="modal-header">
