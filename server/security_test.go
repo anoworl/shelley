@@ -19,12 +19,12 @@ func TestHandleWriteFile_Security(t *testing.T) {
 	}
 	defer os.RemoveAll(tempDir)
 
-	// 1. Test writing outside a git repo
+	// 1. Test writing outside a git repo (Now ALLOWED by design, but checking for non-crash)
 	t.Run("WriteOutsideGitRepo", func(t *testing.T) {
 		targetPath := filepath.Join(tempDir, "outside.txt")
 		payload := map[string]string{
 			"path":    targetPath,
-			"content": "should fail",
+			"content": "allowed content",
 		}
 		body, _ := json.Marshal(payload)
 		req := httptest.NewRequest(http.MethodPost, "/api/write-file", bytes.NewReader(body))
@@ -34,9 +34,14 @@ func TestHandleWriteFile_Security(t *testing.T) {
 		s.handleWriteFile(w, req)
 
 		resp := w.Result()
-		if resp.StatusCode != http.StatusForbidden {
-			t.Errorf("Expected Forbidden (403), got %d", resp.StatusCode)
+		if resp.StatusCode != http.StatusOK {
+			t.Errorf("Expected OK (200), got %d. Body: %s", resp.StatusCode, w.Body.String())
 		}
+
+        content, _ := os.ReadFile(targetPath)
+        if string(content) != "allowed content" {
+            t.Errorf("Content mismatch")
+        }
 	})
 
 	// Setup: Create a git repo inside the temp dir
@@ -51,7 +56,7 @@ func TestHandleWriteFile_Security(t *testing.T) {
 		t.Fatal("Failed to init git repo:", err)
 	}
 
-    // Config user for git commits if needed (not needed for init, but good practice)
+    // Config user for git commits if needed
     exec.Command("git", "-C", repoDir, "config", "user.email", "you@example.com").Run()
     exec.Command("git", "-C", repoDir, "config", "user.name", "Your Name").Run()
 

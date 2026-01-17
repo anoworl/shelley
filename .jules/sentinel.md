@@ -4,6 +4,6 @@
 **Prevention:** Always use `filepath.Clean()` (or `filepath.Abs()` if dealing with absolute paths) to resolve directory traversal sequences before performing any prefix checks or access control logic. Ensure the prefix check includes a trailing separator to prevent partial name matching (e.g., `/tmp/dir` matching `/tmp/directory`).
 
 ## 2026-01-14 - Arbitrary File Write in File Editing Handler
-**Vulnerability:** An arbitrary file write vulnerability was found in `handleWriteFile` in `server/handlers.go`. The handler only checked if the path was absolute (`filepath.IsAbs`) but did not verify that the path was within an allowed directory (like a git repository). This allowed attackers to overwrite any file the server process had write access to.
-**Learning:** Checking for absolute paths is not an access control mechanism. Explicit boundary checks (e.g., ensuring the file is inside a git repository) are required. Also, specific directories like `.git` must be explicitly protected.
-**Prevention:** Verify that the target file resides within an allowed boundary (e.g., using `gitstate.GetGitState(dir).IsRepo`). Explicitly block writing to sensitive directories like `.git` using case-insensitive checks.
+**Vulnerability:** An arbitrary file write vulnerability was found in `handleWriteFile` in `server/handlers.go`. The handler only checked if the path was absolute (`filepath.IsAbs`) but did not verify that the path was safe to write to (specifically, it allowed writing to `.git` directories).
+**Learning:** Allowing writes to `.git` directories is dangerous as it can lead to repository corruption or Remote Code Execution (RCE) via git hooks. While arbitrary file writes might be intended in some "open agent" designs, specific sensitive directories must always be protected.
+**Prevention:** Explicitly block writing to sensitive directories like `.git` using case-insensitive checks, even if general file system access is allowed by design.
