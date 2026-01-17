@@ -110,6 +110,16 @@ func (s *Server) handleWriteFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Verify the path is within a git repository
+	// We check the parent directory because the file itself might not exist yet
+	parentDir := filepath.Dir(clean)
+	if _, err := getGitRoot(parentDir); err != nil {
+		// If the parent dir doesn't exist or isn't in a git repo, reject
+		// Note: getGitRoot executes git rev-parse --show-toplevel
+		http.Error(w, "write denied: path must be within a git repository", http.StatusForbidden)
+		return
+	}
+
 	// Write the file
 	if err := os.WriteFile(clean, []byte(req.Content), 0o644); err != nil {
 		http.Error(w, fmt.Sprintf("failed to write file: %v", err), http.StatusInternalServerError)
