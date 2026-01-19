@@ -204,7 +204,7 @@ func TestUploadedFileCanBeReadViaReadEndpoint(t *testing.T) {
 	os.Remove(path)
 }
 
-func TestUploadPreservesFileExtension(t *testing.T) {
+func TestUploadExtensionValidation(t *testing.T) {
 	database, cleanup := setupTestDB(t)
 	defer cleanup()
 
@@ -215,13 +215,17 @@ func TestUploadPreservesFileExtension(t *testing.T) {
 
 	testCases := []struct {
 		filename string
-		wantExt  string
+		wantCode int
+		wantExt  string // only used if wantCode is 200
 	}{
-		{"photo.png", ".png"},
-		{"image.jpeg", ".jpeg"},
-		{"screenshot.gif", ".gif"},
-		{"document.pdf", ".pdf"},
-		{"noextension", ""},
+		{"photo.png", http.StatusOK, ".png"},
+		{"image.jpeg", http.StatusOK, ".jpeg"},
+		{"image.JPG", http.StatusOK, ".jpg"}, // Case insensitive check
+		{"screenshot.gif", http.StatusOK, ".gif"},
+		{"document.pdf", http.StatusBadRequest, ""},
+		{"noextension", http.StatusBadRequest, ""},
+		{"malicious.html", http.StatusBadRequest, ""},
+		{"script.sh", http.StatusBadRequest, ""},
 	}
 
 	for _, tc := range testCases {
@@ -242,23 +246,29 @@ func TestUploadPreservesFileExtension(t *testing.T) {
 
 			server.handleUpload(w, req)
 
-			if w.Code != http.StatusOK {
-				t.Fatalf("expected status 200, got %d", w.Code)
+			if w.Code != tc.wantCode {
+				t.Fatalf("expected status %d, got %d (body: %s)", tc.wantCode, w.Code, w.Body.String())
 			}
 
-			var response map[string]string
-			if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
-				t.Fatalf("failed to parse response: %v", err)
-			}
+			if tc.wantCode == http.StatusOK {
+				var response map[string]string
+				if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
+					t.Fatalf("failed to parse response: %v", err)
+				}
 
-			path := response["path"]
-			ext := filepath.Ext(path)
-			if ext != tc.wantExt {
-				t.Errorf("expected extension %q, got %q", tc.wantExt, ext)
-			}
+				path := response["path"]
 
-			// Clean up
-			os.Remove(path)
+				// handleUpload lowercases the extension
+				expectedExt := strings.ToLower(tc.wantExt)
+				actualExt := filepath.Ext(path)
+
+				if actualExt != expectedExt {
+					t.Errorf("expected extension %q, got %q", expectedExt, actualExt)
+				}
+
+				// Clean up
+				os.Remove(path)
+			}
 		})
 	}
 }
