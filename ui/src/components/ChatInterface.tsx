@@ -2,11 +2,12 @@ import React, { useState, useEffect, useRef, useMemo, useCallback, useLayoutEffe
 import { Virtualizer, VirtualizerHandle } from "virtua";
 import { Message, Conversation, StreamResponse, LLMContent, ToolCallData, MessageSegment } from "../types";
 import { api } from "../services/api";
-import { ThemeMode, getStoredTheme, setStoredTheme, applyTheme } from "../services/theme";
+
 import { buildVSCodeFolderUrl } from "../services/vscode";
 import { VSCodeIcon } from "./icons/VSCodeIcon";
 import MessageComponent from "./Message";
 import MessageInput from "./MessageInput";
+import { InputModal } from "./InputModal";
 import DiffViewer from "./DiffViewer";
 import BashTool from "./BashTool";
 import PatchTool from "./PatchTool";
@@ -22,7 +23,7 @@ import BrowserResizeTool from "./BrowserResizeTool";
 import DeploySelfTool from "./DeploySelfTool";
 import ToolGroup from "./ToolGroup";
 import DirectoryPickerModal from "./DirectoryPickerModal";
-import SettingsModal from "./SettingsModal";
+
 import { getContextBarColor, formatTokens } from "../utils/context";
 
 interface ContextUsageBarProps {
@@ -373,8 +374,16 @@ interface ChatInterfaceProps {
   onNewConversation: () => void;
   currentConversation?: Conversation;
   onConversationUpdate?: (conversation: Conversation) => void;
+  onConversationArchived?: (conversationId: string) => void;
   onFirstMessage?: (message: string, model: string, cwd?: string) => Promise<void>;
   mostRecentCwd?: string | null;
+  compact?: boolean;
+  isFocused?: boolean;
+  isMaximized?: boolean;
+  onRestoreFromMaximized?: () => void;
+  showPaneControls?: boolean;
+  onMaximize?: () => void;
+  onClose?: () => void;
 }
 
 function ChatInterface({
@@ -383,8 +392,16 @@ function ChatInterface({
   onNewConversation,
   currentConversation,
   onConversationUpdate,
+  onConversationArchived,
   onFirstMessage,
   mostRecentCwd,
+  compact = false,
+  isFocused = true,
+  isMaximized = false,
+  onRestoreFromMaximized,
+  showPaneControls = false,
+  onMaximize,
+  onClose,
 }: ChatInterfaceProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [pendingUserMessage, setPendingUserMessage] = useState<Message | null>(null);
@@ -450,14 +467,18 @@ function ChatInterface({
       setCwdInitialized(true);
     }
   }, [mostRecentCwd, cwdInitialized]);
+
+  // When opening a new conversation pane, use mostRecentCwd (inherits from focused conversation)
+  useEffect(() => {
+    if (conversationId === null && mostRecentCwd) {
+      setSelectedCwdState(mostRecentCwd);
+    }
+  }, [conversationId, mostRecentCwd]);
+
   const [cwdError, setCwdError] = useState<string | null>(null);
 
   const [showDirectoryPicker, setShowDirectoryPicker] = useState(false);
-  // Settings modal removed - configuration moved to status bar for empty conversations
-  const [showOverflowMenu, setShowOverflowMenu] = useState(false);
-  const [themeMode, setThemeMode] = useState<ThemeMode>(getStoredTheme);
   const [showDiffViewer, setShowDiffViewer] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
   const [indicatorMode, setIndicatorMode] = useState<"inline" | "block" | "hidden">("inline");
   const [expansionBehavior, setExpansionBehavior] = useState<"single" | "all">("single");
   const [enterBehavior, setEnterBehavior] = useState<"send" | "stop_and_send">("send");
@@ -467,10 +488,89 @@ function ChatInterface({
   const [diffCommentText, setDiffCommentText] = useState("");
   const [agentWorking, setAgentWorking] = useState(false);
   const [mobileInputVisible, setMobileInputVisible] = useState(false);
+  
+  // Close modal when focus changes to another pane
+  useEffect(() => {
+    if (compact && !isFocused) {
+      setMobileInputVisible(false);
+    }
+  }, [isFocused, compact]);
+
+  // Open input modal with Enter key when focused in compact mode
+  useEffect(() => {
+    if (!compact || !isFocused) return;
+    
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't trigger if already in input or modal is open
+      if (mobileInputVisible) return;
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      
+      if ((e.key === 'Enter' || e.key === ' ') && !e.shiftKey && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault();
+        setMobileInputVisible(true);
+      }
+      
+      // j/k for scrolling (vim-style)
+      if ((e.key === 'j' || e.key === 'k') && !e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        e.preventDefault();
+        if (virtualizerRef.current) {
+          const scrollAmount = 100; // pixels
+          virtualizerRef.current.scrollBy(e.key === 'j' ? scrollAmount : -scrollAmount);
+        }
+      }
+      
+      // n for new conversation
+      if (e.key === 'n' && !e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        e.preventDefault();
+        onNewConversation();
+      }
+      
+      // G for scroll to bottom
+      if (e.key === 'G' && e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        e.preventDefault();
+        if (virtualizerRef.current) {
+          virtualizerRef.current.scrollTo(virtualizerRef.current.scrollSize);
+        }
+      }
+      
+      // gg for scroll to top (track 'g' press)
+      if (e.key === 'g' && !e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        const now = Date.now();
+        if (lastGPress.current && now - lastGPress.current < 500) {
+          e.preventDefault();
+          if (virtualizerRef.current) {
+            virtualizerRef.current.scrollTo(0);
+          }
+          lastGPress.current = null;
+        } else {
+          lastGPress.current = now;
+        }
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [compact, isFocused, mobileInputVisible, onNewConversation]);
+  
+  // Double-tap handler for compact mode
+  const handleMessagesAreaClick = (e: React.MouseEvent) => {
+    if (!compact) return;
+    // Don't trigger on interactive elements
+    const target = e.target as HTMLElement;
+    if (target.closest('button, a, select, input, textarea, [role="button"]')) return;
+    
+    const now = Date.now();
+    if (now - lastTapTime.current < 300) {
+      // Double tap detected
+      setMobileInputVisible(true);
+      lastTapTime.current = 0;
+    } else {
+      lastTapTime.current = now;
+    }
+  };
+  
   const [cancelling, setCancelling] = useState(false);
   const [contextWindowSize, setContextWindowSize] = useState(0);
-  const terminalURL = window.__SHELLEY_INIT__?.terminal_url || null;
-  const links = window.__SHELLEY_INIT__?.links || [];
   const hostname = window.__SHELLEY_INIT__?.hostname || "localhost";
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [reconnectAttempts, setReconnectAttempts] = useState(0);
@@ -481,10 +581,12 @@ function ChatInterface({
     const stored = localStorage.getItem("shelley-show-tools");
     return stored === null ? true : stored === "true";
   });
+  const [showCopied, setShowCopied] = useState(false);
   const virtualizerRef = useRef<VirtualizerHandle>(null);
   const shouldStickToBottom = useRef(true);
+  const lastGPress = useRef<number | null>(null);
+  const lastTapTime = useRef<number>(0);
   const eventSourceRef = useRef<EventSource | null>(null);
-  const overflowMenuRef = useRef<HTMLDivElement>(null);
   const reconnectTimeoutRef = useRef<number | null>(null);
 
   // Load settings on mount and when settings modal closes
@@ -501,6 +603,10 @@ function ChatInterface({
 
   useEffect(() => {
     loadSettings();
+    // Reload settings when they change (e.g., from SettingsModal)
+    const handleSettingsChanged = () => loadSettings();
+    window.addEventListener("shelley-settings-changed", handleSettingsChanged);
+    return () => window.removeEventListener("shelley-settings-changed", handleSettingsChanged);
   }, []);
 
   // Load messages and set up streaming
@@ -530,22 +636,6 @@ function ChatInterface({
   }, [conversationId]);
 
   // Scroll handling is now done by Virtualizer's onScroll callback
-
-  // Close overflow menu when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (overflowMenuRef.current && !overflowMenuRef.current.contains(event.target as Node)) {
-        setShowOverflowMenu(false);
-      }
-    };
-
-    if (showOverflowMenu) {
-      document.addEventListener("mousedown", handleClickOutside);
-      return () => {
-        document.removeEventListener("mousedown", handleClickOutside);
-      };
-    }
-  }, [showOverflowMenu]);
 
   const loadMessages = async () => {
     if (!conversationId) return;
@@ -701,6 +791,11 @@ function ChatInterface({
     if (!message.trim()) return;
     if (sending) {
       throw new Error("Already sending");
+    }
+
+    // Auto-reconnect SSE if disconnected
+    if (isDisconnected) {
+      handleManualReconnect();
     }
 
     // Optimistic update: immediately show user message
@@ -1141,14 +1236,37 @@ function ChatInterface({
 
 
   return (
-    <div className="full-height flex flex-col">
+    <div className={`full-height flex flex-col${compact ? " compact-mode" : ""}`}>
       {/* Header */}
-      <div className="header">
+      <div className={`header${isFocused && showPaneControls ? ' header-focused' : ''}${isDisconnected ? ' header-disconnected' : error ? ' header-error' : (() => {
+        const maxTokens = models.find((m) => m.id === selectedModel)?.max_context_tokens || 200000;
+        const pct = maxTokens > 0 ? (contextWindowSize / maxTokens) * 100 : 0;
+        if (pct >= 80) return ' header-context-danger';
+        if (pct >= 50) return ' header-context-warning';
+        return '';
+      })()}`}>
         <div className="header-left">
+          {/* Agent status indicator - clickable to stop when working */}
+          {conversationId && (
+            agentWorking ? (
+              <button
+                className="agent-status-indicator working clickable"
+                onClick={handleCancel}
+                disabled={cancelling}
+                title={cancelling ? "Stopping..." : "Click to stop"}
+                aria-label={cancelling ? "Stopping..." : "Stop agent"}
+              />
+            ) : (
+              <span
+                className={`agent-status-indicator ${error ? "error" : "stopped"}`}
+                title={error ? "Ended with error" : "Waiting for input"}
+              />
+            )
+          )}
           <button
             onClick={onOpenDrawer}
             className="btn-icon hide-on-desktop"
-            aria-label="Open conversations"
+            aria-label="Open sidebar"
           >
             <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
@@ -1160,9 +1278,103 @@ function ChatInterface({
             </svg>
           </button>
 
-          <h1 className="header-title" title={currentConversation?.slug || "Shelley"}>
-            {getDisplayTitle()}
+          {showPaneControls && (
+            <>
+              {isMaximized && onRestoreFromMaximized ? (
+                <button
+                  className="pane-header-btn"
+                  onClick={onRestoreFromMaximized}
+                  title="Restore"
+                  aria-label="Restore from maximized"
+                >
+                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 9V4.5M9 9H4.5M9 9L3.75 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 9h4.5M15 9V4.5M15 9l5.25-5.25M15 15h4.5M15 15v4.5m0-4.5l5.25 5.25" />
+                  </svg>
+                </button>
+              ) : (
+                <>
+                  {onClose && (
+                    <button
+                      className="pane-header-btn"
+                      onClick={onClose}
+                      title="Close"
+                      aria-label="Close pane"
+                    >
+                      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  )}
+                  {onMaximize && (
+                    <button
+                      className="pane-header-btn"
+                      onClick={onMaximize}
+                      title="Maximize"
+                      aria-label="Maximize pane"
+                    >
+                      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" />
+                      </svg>
+                    </button>
+                  )}
+                </>
+              )}
+            </>
+          )}
+          <h1
+            className="header-title"
+            title={currentConversation?.slug ? `Click to copy: ${currentConversation.slug}` : "Shelley"}
+            onClick={() => {
+              if (currentConversation?.slug) {
+                navigator.clipboard.writeText(currentConversation.slug);
+                setShowCopied(true);
+                setTimeout(() => setShowCopied(false), 1500);
+              }
+            }}
+            style={{ cursor: currentConversation?.slug ? 'pointer' : 'default', position: 'relative' }}
+          >
+            <span style={{ visibility: showCopied ? 'hidden' : 'visible' }}>{getDisplayTitle()}</span>
+            {showCopied && (
+              <span style={{ position: 'absolute', left: 0, right: 0, textAlign: 'center' }}>Copied!</span>
+            )}
           </h1>
+
+          {/* Status badges in header */}
+          {isDisconnected && (
+            <button
+              className="header-status-badge header-status-disconnected"
+              onClick={handleManualReconnect}
+              title="Click to reconnect"
+            >
+              Disconnected · Retry
+            </button>
+          )}
+          {error && !isDisconnected && (
+            <span className="header-status-badge header-status-error" title={error}>
+              Error
+            </span>
+          )}
+
+          {/* Archive button */}
+          {conversationId && (
+            <button
+              className="pane-header-btn"
+              onClick={async (e) => {
+                e.stopPropagation();
+                try {
+                  await api.archiveConversation(conversationId);
+                  onConversationArchived?.(conversationId);
+                } catch (err) {
+                  console.error("Failed to archive:", err);
+                }
+              }}
+              title="Archive conversation"
+            >
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+              </svg>
+            </button>
+          )}
         </div>
 
         {/* Model/Dir info */}
@@ -1176,6 +1388,19 @@ function ChatInterface({
             <span className="header-info-value">{currentConversation?.cwd || selectedCwd || "/"}</span>
           </div>
         </div>
+
+        {/* Pane directory indicator (shown when pane controls are visible) */}
+        {showPaneControls && (
+          <div className="pane-cwd" title={currentConversation?.cwd || selectedCwd || "/"}>
+            {(() => {
+              const cwd = currentConversation?.cwd || selectedCwd || "/";
+              const homeDir = window.__SHELLEY_INIT__?.home_dir;
+              if (homeDir && cwd === homeDir) return "~";
+              if (homeDir && cwd.startsWith(homeDir + "/")) return "~" + cwd.slice(homeDir.length);
+              return cwd;
+            })()}
+          </div>
+        )}
 
         <div className="header-actions">
           {/* VSCode open button */}
@@ -1217,7 +1442,7 @@ function ChatInterface({
           </button>
 
           {/* Green + icon in circle for new conversation */}
-          <button onClick={onNewConversation} className="btn-new" aria-label="New conversation">
+          <button onClick={(e) => { e.stopPropagation(); onNewConversation(); }} className="btn-new" aria-label="New conversation">
             <svg
               fill="none"
               stroke="currentColor"
@@ -1233,201 +1458,36 @@ function ChatInterface({
             </svg>
           </button>
 
-          {/* Overflow menu */}
-          <div ref={overflowMenuRef} style={{ position: "relative" }}>
+          {/* Diffs button - show when we have a CWD */}
+          {/* Diffs button */}
+          {(currentConversation?.cwd || selectedCwd) && (
             <button
-              onClick={() => setShowOverflowMenu(!showOverflowMenu)}
-              className="btn-icon"
-              aria-label="More options"
+              onClick={() => setShowDiffViewer(true)}
+              className="btn-tool-toggle"
+              title="View Diffs"
+              aria-label="View Diffs"
             >
-              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                style={{ width: "1rem", height: "1rem" }}
+              >
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeWidth={2}
-                  d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"
+                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
                 />
               </svg>
             </button>
-
-            {showOverflowMenu && (
-              <div className="overflow-menu">
-                {/* Diffs button - show when we have a CWD */}
-                {(currentConversation?.cwd || selectedCwd) && (
-                  <button
-                    onClick={() => {
-                      setShowOverflowMenu(false);
-                      setShowDiffViewer(true);
-                    }}
-                    className="overflow-menu-item"
-                  >
-                    <svg
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                      style={{ width: "1.25rem", height: "1.25rem", marginRight: "0.75rem" }}
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                      />
-                    </svg>
-                    Diffs
-                  </button>
-                )}
-                {terminalURL && (
-                  <button
-                    onClick={() => {
-                      setShowOverflowMenu(false);
-                      window.open(terminalURL, "_blank");
-                    }}
-                    className="overflow-menu-item"
-                  >
-                    <svg
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                      style={{ width: "1.25rem", height: "1.25rem", marginRight: "0.75rem" }}
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                      />
-                    </svg>
-                    Terminal
-                  </button>
-                )}
-                {links.map((link, index) => (
-                  <button
-                    key={index}
-                    onClick={() => {
-                      setShowOverflowMenu(false);
-                      window.open(link.url, "_blank");
-                    }}
-                    className="overflow-menu-item"
-                  >
-                    <svg
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                      style={{ width: "1.25rem", height: "1.25rem", marginRight: "0.75rem" }}
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d={
-                          link.icon_svg ||
-                          "M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                        }
-                      />
-                    </svg>
-                    {link.title}
-                  </button>
-                ))}
-
-                {/* Settings */}
-                <div className="overflow-menu-divider" />
-                <button
-                  onClick={() => {
-                    setShowOverflowMenu(false);
-                    setShowSettings(true);
-                  }}
-                  className="overflow-menu-item"
-                >
-                  <svg
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                    style={{ width: "1.25rem", height: "1.25rem", marginRight: "0.75rem" }}
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
-                    />
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                    />
-                  </svg>
-                  Settings
-                </button>
-
-                {/* Theme selector */}
-                <div className="overflow-menu-divider" />
-                <div className="theme-toggle-row">
-                  <button
-                    onClick={() => {
-                      setThemeMode("system");
-                      setStoredTheme("system");
-                      applyTheme("system");
-                    }}
-                    className={`theme-toggle-btn${themeMode === "system" ? " theme-toggle-btn-selected" : ""}`}
-                    title="System"
-                  >
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-                      />
-                    </svg>
-                  </button>
-                  <button
-                    onClick={() => {
-                      setThemeMode("light");
-                      setStoredTheme("light");
-                      applyTheme("light");
-                    }}
-                    className={`theme-toggle-btn${themeMode === "light" ? " theme-toggle-btn-selected" : ""}`}
-                    title="Light"
-                  >
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"
-                      />
-                    </svg>
-                  </button>
-                  <button
-                    onClick={() => {
-                      setThemeMode("dark");
-                      setStoredTheme("dark");
-                      applyTheme("dark");
-                    }}
-                    className={`theme-toggle-btn${themeMode === "dark" ? " theme-toggle-btn-selected" : ""}`}
-                    title="Dark"
-                  >
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"
-                      />
-                    </svg>
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
+          )}
         </div>
       </div>
 
       {/* Messages area */}
       {/* Messages area with scroll-to-bottom button wrapper */}
-      <div className="messages-area-wrapper">
+      <div className="messages-area-wrapper" onClick={handleMessagesAreaClick}>
         {loading ? (
           <div className="messages-container flex items-center justify-center full-height">
             <div className="spinner"></div>
@@ -1486,75 +1546,42 @@ function ChatInterface({
         )}
       </div>
 
-      {/* Unified Status Bar */}
-      <div className="status-bar">
-        <div className="status-bar-content">
-          {isDisconnected ? (
-            // Disconnected state
-            <>
-              <span className="status-message status-warning">Disconnected</span>
-              <button
-                onClick={handleManualReconnect}
-                className="status-button status-button-primary"
-              >
-                Retry
-              </button>
-            </>
-          ) : error ? (
-            // Error state
-            <>
-              <span className="status-message status-error">{error}</span>
-              <button onClick={() => setError(null)} className="status-button status-button-text">
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </button>
-            </>
-          ) : agentWorking && conversationId ? (
-            // Agent working - show status with stop button and context bar
-            <div className="status-bar-active">
-              <div className="status-working-group">
-                <AnimatedWorkingStatus />
-                <button
-                  onClick={handleCancel}
-                  disabled={cancelling}
-                  className="status-stop-button"
-                  title={cancelling ? "Cancelling..." : "Stop"}
-                >
-                  <svg viewBox="0 0 24 24" fill="currentColor">
-                    <rect x="6" y="6" width="12" height="12" rx="1" />
-                  </svg>
-                  <span className="status-stop-label">{cancelling ? "Cancelling..." : "Stop"}</span>
-                </button>
-              </div>
-              <ContextUsageBar
-                contextWindowSize={contextWindowSize}
-                maxContextTokens={
-                  models.find((m) => m.id === selectedModel)?.max_context_tokens || 200000
-                }
-              />
-            </div>
-          ) : // Idle state - show ready message, or configuration for empty conversation
-          !conversationId ? (
-            // Empty conversation - show model (left) and cwd (right)
+      {/* Status Bar - only shown for new conversations (model/cwd selection) */}
+      {!conversationId && (
+        <div className="status-bar">
+          <div className="status-bar-content">
             <div
-              className="status-bar-new-conversation"
+              className="status-bar-new-conversation status-bar-clickable"
+              onClick={(e) => {
+                const target = e.target as HTMLElement;
+                if (target.tagName !== 'SELECT' && target.tagName !== 'BUTTON' && !target.closest('select') && !target.closest('button')) {
+                  setMobileInputVisible(true);
+                }
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  const target = e.target as HTMLElement;
+                  if (target.tagName !== 'SELECT' && target.tagName !== 'BUTTON') {
+                    e.preventDefault();
+                    setMobileInputVisible(true);
+                  }
+                }
+              }}
+              role="button"
+              tabIndex={0}
             >
-              {/* Model selector - far left */}
+              {/* Model selector */}
               <div
                 className="status-field status-field-model"
                 title="AI model to use for this conversation"
+                onClick={(e) => e.stopPropagation()}
               >
                 <span className="status-field-label">Model:</span>
                 <select
                   id="model-select-status"
                   value={selectedModel}
                   onChange={(e) => setSelectedModel(e.target.value)}
+                  onClick={(e) => e.stopPropagation()}
                   disabled={sending}
                   className="status-select"
                 >
@@ -1566,10 +1593,11 @@ function ChatInterface({
                 </select>
               </div>
 
-              {/* CWD indicator - far right */}
+              {/* CWD indicator */}
               <div
                 className={`status-field status-field-cwd${cwdError ? " status-field-error" : ""}`}
                 title={cwdError || "Working directory for file operations"}
+                onClick={(e) => e.stopPropagation()}
               >
                 <span className="status-field-label">Dir:</span>
                 <button
@@ -1584,55 +1612,44 @@ function ChatInterface({
                 </button>
               </div>
             </div>
-          ) : (
-            // Active conversation - show Ready + context bar
-            <div
-              className="status-bar-active status-bar-clickable"
-              onClick={() => setMobileInputVisible(true)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  setMobileInputVisible(true);
-                }
-              }}
-              role="button"
-              tabIndex={0}
-            >
-              <span className="status-message status-ready">
-                Ready on {window.matchMedia('(max-width: 768px)').matches ? hostname.split('.')[0] : hostname}
-              </span>
-              <ContextUsageBar
-                contextWindowSize={contextWindowSize}
-                maxContextTokens={
-                  models.find((m) => m.id === selectedModel)?.max_context_tokens || 200000
-                }
-              />
-            </div>
-          )}
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* Message input - hidden on mobile until status bar is tapped */}
-      <MessageInput
-        key={conversationId || "new"}
-        onSend={async (msg) => {
-          await sendMessage(msg);
-          // Hide input on mobile after sending
-          if (window.matchMedia("(max-width: 768px)").matches) {
-            setMobileInputVisible(false);
-          }
-        }}
-        disabled={loading}
-        autoFocus={mobileInputVisible}
-        injectedText={diffCommentText}
-        onClearInjectedText={() => setDiffCommentText("")}
-        persistKey={conversationId || "new-conversation"}
-        mobileVisible={mobileInputVisible || !conversationId}
-        onMobileBlur={() => setMobileInputVisible(false)}
-        agentWorking={agentWorking}
-        onCancel={handleCancel}
-        enterBehavior={enterBehavior}
-      />
+      {/* Message input */}
+      {compact ? (
+        // Compact mode: use modal for input
+        <InputModal
+          isOpen={mobileInputVisible}
+          onClose={() => setMobileInputVisible(false)}
+          onSend={async (msg) => {
+            await sendMessage(msg);
+          }}
+          sending={sending}
+          agentWorking={agentWorking}
+          onCancel={handleCancel}
+          conversationTitle={currentConversation?.slug || undefined}
+          enterBehavior={enterBehavior}
+          persistKey={conversationId || "new-conversation"}
+        />
+      ) : (
+        // Normal mode: inline input
+        <MessageInput
+          key={conversationId || "new"}
+          onSend={async (msg) => {
+            await sendMessage(msg);
+          }}
+          disabled={loading}
+          autoFocus={true}
+          injectedText={diffCommentText}
+          onClearInjectedText={() => setDiffCommentText("")}
+          persistKey={conversationId || "new-conversation"}
+          mobileVisible={true}
+          agentWorking={agentWorking}
+          onCancel={handleCancel}
+          enterBehavior={enterBehavior}
+        />
+      )}
 
       {/* Directory Picker Modal */}
       <DirectoryPickerModal
@@ -1656,9 +1673,6 @@ function ChatInterface({
         onCommentTextChange={setDiffCommentText}
         initialCommit={diffViewerInitialCommit}
       />
-
-      {/* Settings Modal */}
-      <SettingsModal isOpen={showSettings} onClose={() => { setShowSettings(false); loadSettings(); }} />
     </div>
   );
 }

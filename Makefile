@@ -1,6 +1,6 @@
 # Shelley Makefile
 
-.PHONY: build build-linux-aarch64 build-linux-x86 test test-go test-e2e ui serve clean help templates deploy
+.PHONY: build build-linux-aarch64 build-linux-x86 test test-go test-e2e ui serve clean help templates deploy install-binary
 
 # Default target
 all: build
@@ -79,12 +79,21 @@ serve: ui
 	go run ./cmd/shelley serve
 
 # Deploy to exe.dev VM
-deploy: build-linux
-	@echo "Deploying Shelley to exe.dev VM..."
-	sudo systemctl stop --force shelley.service
+# If SHELLEY_DEPLOY=1 is set (called from deploy_self tool), wait before stopping
+# Deploy: build and install
+deploy: build-linux install-binary
+
+# Install binary only (no build). Used by deploy_self tool.
+install-binary:
+	@echo "Installing binary..."
+ifdef SHELLEY_DEPLOY
+	@echo "Waiting for deploy_self response to be sent..."
+	@sleep 0.5
+endif
+	sudo systemctl stop shelley.socket
 	sudo cp bin/shelley-linux /usr/local/bin/shelley
 	sudo chmod 0755 /usr/local/bin/shelley
-	sudo systemctl start shelley.service
+	sudo systemctl start shelley.socket
 	@echo "Done. Check status with: systemctl status shelley.service"
 
 # Clean build artifacts

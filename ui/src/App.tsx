@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import ChatInterface from "./components/ChatInterface";
+import { PaneGrid } from "./components/PaneGrid";
 import ConversationDrawer from "./components/ConversationDrawer";
 import { useSwipeDrawer } from "./hooks/useSwipeDrawer";
+import { usePaneState } from "./hooks/usePaneState";
 import { Conversation } from "./types";
 import { api } from "./services/api";
+import { computeDisplayIds } from "./utils/pane";
 
 // Get conversation ID from the current URL path (expects /c/<id> format)
 function getIdFromPath(): string | null {
@@ -20,7 +22,7 @@ function getIdFromPath(): string | null {
 // Capture the initial ID from URL BEFORE React renders
 const initialIdFromUrl = getIdFromPath();
 
-// Update the URL to reflect the current conversation ID
+// Update the URL to reflect the focused conversation ID
 function updateUrlWithId(conversationId: string | null) {
   const currentId = getIdFromPath();
   if (currentId !== conversationId) {
@@ -49,15 +51,32 @@ function updatePageTitle(conversation: Conversation | undefined) {
 
 function App() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
-  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [paneState, paneActions] = usePaneState(initialIdFromUrl);
+  const { columnCount, rowCount, openConversationIds, focusedConversationId, maximizedConversationId, hasNewPane } = paneState;
+  const { setColumnCount, setRowCount, openConversation, closeConversation, focusConversation, maximizeConversation, restoreFromMaximized, bringToFront, openNewConversation, closeNewPane } = paneActions;
+
+  // Track CWD from previously focused conversation (for inheriting when opening new conversation)
+  const [inheritedCwd, setInheritedCwd] = useState<string | null>(null);
+
+  // Drawer open state - default to open on desktop, closed on mobile
+  const [drawerOpen, setDrawerOpen] = useState(() => {
+    const stored = localStorage.getItem('shelley_drawer_open');
+    if (stored !== null) return stored === 'true';
+    return window.innerWidth >= 768; // Default: open on desktop
+  });
+
+  // Persist drawer state
+  const toggleDrawer = useCallback((open: boolean) => {
+    setDrawerOpen(open);
+    localStorage.setItem('shelley_drawer_open', String(open));
+  }, []);
   const [loading, setLoading] = useState(true);
 
   // Enable swipe gestures to open/close drawer on mobile
   useSwipeDrawer(
     drawerOpen,
-    () => setDrawerOpen(true),
-    () => setDrawerOpen(false),
+    () => toggleDrawer(true),
+    () => toggleDrawer(false),
   );
   const [error, setError] = useState<string | null>(null);
   const initialSlugResolved = useRef(false);
@@ -124,14 +143,138 @@ function App() {
     };
   }, []);
 
-  // Update page title and URL when conversation changes
+  // Update page title and URL when focused conversation changes
   useEffect(() => {
-    const currentConv = conversations.find(
-      (conv) => conv.conversation_id === currentConversationId,
+    const focusedConv = conversations.find(
+      (conv) => conv.conversation_id === focusedConversationId,
     );
-    updatePageTitle(currentConv);
-    updateUrlWithId(currentConversationId);
-  }, [currentConversationId, conversations]);
+    updatePageTitle(focusedConv);
+    updateUrlWithId(focusedConversationId);
+  }, [focusedConversationId, conversations]);
+
+  // Keyboard shortcuts for pane navigation
+  useEffect(() => {
+    const isMaximized = maximizedConversationId !== null;
+    const isSinglePaneMode = (columnCount === 1 && rowCount === 1) || isMaximized;
+    
+    // Only enable pane navigation in multi-pane mode
+    if (isSinglePaneMode) return;
+    
+    const displayIds = computeDisplayIds(
+      columnCount, rowCount, openConversationIds, focusedConversationId, maximizedConversationId, hasNewPane
+    );
+    
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Skip if in input/textarea
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      
+      const currentIndex = displayIds.findIndex(id => id === focusedConversationId);
+      // If focused pane not found in display, default to 0
+      const safeCurrentIndex = currentIndex >= 0 ? currentIndex : 0;
+      let nextIndex = -1;
+      
+      // Tab / Shift+Tab: cycle through panes
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        if (e.shiftKey) {
+          // Previous pane
+          nextIndex = safeCurrentIndex <= 0 ? displayIds.length - 1 : safeCurrentIndex - 1;
+        } else {
+          // Next pane
+          nextIndex = safeCurrentIndex >= displayIds.length - 1 ? 0 : safeCurrentIndex + 1;
+        }
+      }
+      
+      // Alt + Arrow keys: directional navigation
+      if (e.altKey && ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) {
+        e.preventDefault();
+        const col = safeCurrentIndex % columnCount;
+        const row = Math.floor(safeCurrentIndex / columnCount);
+        
+        switch (e.key) {
+          case 'ArrowLeft':
+            if (col > 0) nextIndex = safeCurrentIndex - 1;
+            break;
+          case 'ArrowRight':
+            if (safeCurrentIndex + 1 < displayIds.length) nextIndex = safeCurrentIndex + 1;
+            break;
+          case 'ArrowUp':
+            if (row > 0) nextIndex = safeCurrentIndex - columnCount;
+            break;
+          case 'ArrowDown':
+            if (safeCurrentIndex + columnCount < displayIds.length) nextIndex = safeCurrentIndex + columnCount;
+            break;
+        }
+      }
+      
+      // h/l: horizontal pane navigation (wrap to next/prev row at edges)
+      // j/k: vertical pane navigation (wrap top/bottom)
+      if (['h', 'l', 'j', 'k'].includes(e.key)) {
+        e.preventDefault();
+        const col = safeCurrentIndex % columnCount;
+        const row = Math.floor(safeCurrentIndex / columnCount);
+        const totalRows = Math.ceil(displayIds.length / columnCount);
+        
+        switch (e.key) {
+          case 'h': // left, wrap to prev row's right edge
+            if (col > 0) {
+              nextIndex = safeCurrentIndex - 1;
+            } else if (row > 0) {
+              // At left edge, go to previous row's right edge
+              const prevRowStart = (row - 1) * columnCount;
+              const prevRowEnd = Math.min(prevRowStart + columnCount - 1, displayIds.length - 1);
+              nextIndex = prevRowEnd;
+            } else {
+              // At top-left, wrap to bottom row's right edge
+              nextIndex = displayIds.length - 1;
+            }
+            break;
+          case 'l': // right, wrap to next row's left edge
+            if (col < columnCount - 1 && safeCurrentIndex + 1 < displayIds.length) {
+              nextIndex = safeCurrentIndex + 1;
+            } else if (row < totalRows - 1) {
+              // At right edge, go to next row's left edge
+              const nextRowStart = (row + 1) * columnCount;
+              if (nextRowStart < displayIds.length) {
+                nextIndex = nextRowStart;
+              }
+            } else {
+              // At bottom-right, wrap to top-left
+              nextIndex = 0;
+            }
+            break;
+          case 'j': // down, wrap to top
+            if (safeCurrentIndex + columnCount < displayIds.length) {
+              nextIndex = safeCurrentIndex + columnCount;
+            } else {
+              // At bottom, wrap to same column at top
+              nextIndex = col;
+            }
+            break;
+          case 'k': // up, wrap to bottom
+            if (row > 0) {
+              nextIndex = safeCurrentIndex - columnCount;
+            } else {
+              // At top, wrap to same column at bottom (or last valid cell)
+              const bottomIndex = (totalRows - 1) * columnCount + col;
+              nextIndex = Math.min(bottomIndex, displayIds.length - 1);
+            }
+            break;
+        }
+      }
+      
+      if (nextIndex >= 0 && nextIndex < displayIds.length) {
+        const nextId = displayIds[nextIndex];
+        // nextId can be null (new conversation pane) or string (existing conversation)
+        if (nextId !== undefined) {
+          focusConversation(nextId);
+        }
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [columnCount, rowCount, openConversationIds, focusedConversationId, maximizedConversationId, hasNewPane, focusConversation]);
 
   const loadConversations = async () => {
     try {
@@ -143,13 +286,11 @@ function App() {
       // Try to resolve conversation from URL ID first
       const urlConvId = await resolveInitialId(convs);
       if (urlConvId) {
-        setCurrentConversationId(urlConvId);
-      } else if (!currentConversationId && convs.length > 0) {
-        // If we have conversations and no current one selected, select the first
-        setCurrentConversationId(convs[0].conversation_id);
+        openConversation(urlConvId);
+      } else if (openConversationIds.length === 0 && convs.length > 0) {
+        // If no conversations are open and we have some, open the first
+        openConversation(convs[0].conversation_id);
       }
-      // If no conversations exist, leave currentConversationId as null
-      // The UI will show the welcome screen and create conversation on first message
     } catch (err) {
       console.error("Failed to load conversations:", err);
       setError("Failed to load conversations. Please refresh the page.");
@@ -159,14 +300,33 @@ function App() {
   };
 
   const startNewConversation = () => {
-    // Just clear the current conversation - a new one will be created when the user sends their first message
-    setCurrentConversationId(null);
-    setDrawerOpen(false);
+    // Save current focused conversation's cwd before switching to new conversation
+    const currentConv = focusedConversationId
+      ? conversations.find(c => c.conversation_id === focusedConversationId)
+      : null;
+    setInheritedCwd(currentConv?.cwd ?? null);
+    openNewConversation();
+    // Close drawer on mobile only
+    if (window.innerWidth < 768) toggleDrawer(false);
   };
 
   const selectConversation = (conversationId: string) => {
-    setCurrentConversationId(conversationId);
-    setDrawerOpen(false);
+    if (openConversationIds.includes(conversationId)) {
+      // Already open - check if it's in a visible slot
+      const visibleSlots = columnCount * rowCount;
+      const index = openConversationIds.indexOf(conversationId);
+      if (index < visibleSlots) {
+        // Already visible - just focus it without changing position
+        focusConversation(conversationId);
+      } else {
+        // Not visible - bring to front
+        bringToFront(conversationId);
+      }
+    } else {
+      openConversation(conversationId);
+    }
+    // Close drawer on mobile only
+    if (window.innerWidth < 768) toggleDrawer(false);
   };
 
   const updateConversation = (updatedConversation: Conversation) => {
@@ -179,20 +339,14 @@ function App() {
 
   const handleConversationArchived = (conversationId: string) => {
     setConversations((prev) => prev.filter((conv) => conv.conversation_id !== conversationId));
-    // If the archived conversation was current, switch to another or clear
-    if (currentConversationId === conversationId) {
-      const remaining = conversations.filter((conv) => conv.conversation_id !== conversationId);
-      setCurrentConversationId(remaining.length > 0 ? remaining[0].conversation_id : null);
-    }
+    closeConversation(conversationId);
   };
 
   const handleConversationUnarchived = (conversation: Conversation) => {
-    // Add the unarchived conversation back to the list
     setConversations((prev) => [conversation, ...prev]);
   };
 
   const handleConversationRenamed = (conversation: Conversation) => {
-    // Update the conversation in the list with the new slug
     setConversations((prev) =>
       prev.map((c) => (c.conversation_id === conversation.conversation_id ? conversation : c)),
     );
@@ -224,22 +378,22 @@ function App() {
     );
   }
 
-  const currentConversation = conversations.find(
-    (conv) => conv.conversation_id === currentConversationId,
-  );
-
-  // Get the CWD from the most recent conversation (first in list, sorted by updated_at desc)
-  const mostRecentCwd = conversations.length > 0 ? conversations[0].cwd : null;
+  // Prefer the focused conversation's cwd, or inherited cwd for new conversations
+  const focusedConversation = focusedConversationId
+    ? conversations.find(c => c.conversation_id === focusedConversationId)
+    : null;
+  // For new conversation pane (focusedConversationId === null), use inherited cwd from previous focus
+  const mostRecentCwd = focusedConversation?.cwd ?? inheritedCwd ?? window.__SHELLEY_INIT__?.home_dir ?? null;
 
   const handleFirstMessage = async (message: string, model: string, cwd?: string) => {
     try {
       const response = await api.sendMessageWithNewConversation({ message, model, cwd });
       const newConversationId = response.conversation_id;
 
-      // Fetch the new conversation details
       const updatedConvs = await api.getConversations();
       setConversations(updatedConvs);
-      setCurrentConversationId(newConversationId);
+      // New conversation pane was at the end, so keep it there
+      openConversation(newConversationId, true);
     } catch (err) {
       console.error("Failed to send first message:", err);
       setError("Failed to send message");
@@ -249,35 +403,48 @@ function App() {
 
   return (
     <div className="app-container">
-      {/* Conversations drawer */}
       <ConversationDrawer
         isOpen={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
+        onClose={() => toggleDrawer(false)}
+        onOpen={() => toggleDrawer(true)}
         conversations={conversations}
-        currentConversationId={currentConversationId}
+        currentConversationId={focusedConversationId}
+        openConversationIds={openConversationIds}
         onSelectConversation={selectConversation}
         onNewConversation={startNewConversation}
         onConversationArchived={handleConversationArchived}
         onConversationUnarchived={handleConversationUnarchived}
         onConversationRenamed={handleConversationRenamed}
+        columnCount={columnCount}
+        rowCount={rowCount}
+        onColumnCountChange={setColumnCount}
+        onRowCountChange={setRowCount}
       />
 
-      {/* Main chat interface */}
       <div className="main-content">
-        <ChatInterface
-          conversationId={currentConversationId}
-          onOpenDrawer={() => setDrawerOpen(true)}
+        <PaneGrid
+          columnCount={columnCount}
+          rowCount={rowCount}
+          openConversationIds={openConversationIds}
+          focusedConversationId={focusedConversationId}
+          maximizedConversationId={maximizedConversationId}
+          hasNewPane={hasNewPane}
+          conversations={conversations}
+          onFocusPane={focusConversation}
+          onClosePane={(id) => id === null ? closeNewPane() : closeConversation(id)}
+          onMaximizePane={maximizeConversation}
+          onRestoreFromMaximized={restoreFromMaximized}
+          onOpenDrawer={() => toggleDrawer(true)}
           onNewConversation={startNewConversation}
-          currentConversation={currentConversation}
           onConversationUpdate={updateConversation}
+          onConversationArchived={handleConversationArchived}
           onFirstMessage={handleFirstMessage}
           mostRecentCwd={mostRecentCwd}
         />
       </div>
 
-      {/* Backdrop for mobile drawer */}
       {drawerOpen && (
-        <div className="backdrop hide-on-desktop" onClick={() => setDrawerOpen(false)} />
+        <div className="backdrop hide-on-desktop" onClick={() => toggleDrawer(false)} />
       )}
     </div>
   );

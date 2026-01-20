@@ -6,13 +6,15 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
+	"syscall"
 
 	"shelley.exe.dev/llm"
 )
 
 // DeploySelfTool deploys the current Shelley build to the exe.dev VM.
-// It forks a daemon process that waits for Shelley to exit, then copies
-// the binary and restarts the service.
+// It runs `make install-binary` in the background, which handles stopping
+// the service, copying the binary, and restarting.
 type DeploySelfTool struct{}
 
 const deploySelfInputSchema = `{
@@ -54,19 +56,29 @@ func (t *DeploySelfTool) run(ctx context.Context, input json.RawMessage) llm.Too
 		return llm.ToolOut{Error: fmt.Errorf("source binary not found: %v", err)}
 	}
 
-	// Fork the deploy daemon using the NEW binary (not the running one)
-	// This avoids UI staleness checks failing on the old binary
-	// Use sudo systemd-run (without --scope) to run as a transient service
-	// This immediately returns and the command runs in a separate cgroup
-	// Use systemd-cat to send output to journald (viewable with: journalctl -t shelley-deploy)
-	cmd := exec.Command("sudo", "systemd-run",
-		"systemd-cat", "--identifier=shelley-deploy",
-		params.SourceBinary, "deploy-daemon", params.SourceBinary)
+	// Find the project directory (parent of bin/)
+	// source_binary is like /home/exedev/shelley-3/bin/shelley-linux
+	projectDir := filepath.Dir(filepath.Dir(params.SourceBinary))
 
-	if err := cmd.Start(); err != nil {
-		return llm.ToolOut{Error: fmt.Errorf("failed to start deploy daemon: %v", err)}
+	// Verify Makefile exists
+	makefilePath := filepath.Join(projectDir, "Makefile")
+	if _, err := os.Stat(makefilePath); err != nil {
+		return llm.ToolOut{Error: fmt.Errorf("Makefile not found in %s", projectDir)}
 	}
 
-	msg := fmt.Sprintf("Deploy daemon started (PID %d). It will stop the service, copy %s to /usr/local/bin/shelley, and restart the service. The connection will be lost during deployment.", cmd.Process.Pid, params.SourceBinary)
+	// Run `make install-binary SHELLEY_DEPLOY=1` in a new session.
+	// Setsid creates a new session so the process survives when shelley dies.
+	// SHELLEY_DEPLOY=1 tells make to wait 0.5s before stopping the socket,
+	// allowing this response to be sent first.
+	cmd := exec.Command("make", "-C", projectDir, "install-binary", "SHELLEY_DEPLOY=1")
+	cmd.SysProcAttr = &syscall.SysProcAttr{
+		Setsid: true,
+	}
+
+	if err := cmd.Start(); err != nil {
+		return llm.ToolOut{Error: fmt.Errorf("failed to start deploy: %v", err)}
+	}
+
+	msg := fmt.Sprintf("Deploy started. Running 'make install-binary' in %s. The service will restart shortly and the connection will be lost.", projectDir)
 	return llm.ToolOut{LLMContent: llm.TextContent(msg)}
 }

@@ -50,6 +50,8 @@ function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     setError(null);
     try {
       await api.updateSettings(settings);
+      // Notify all ChatInterface instances to reload settings
+      window.dispatchEvent(new CustomEvent("shelley-settings-changed"));
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save settings");
@@ -88,7 +90,7 @@ function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const toolCheckSettings = settings.guardian?.toolCheck ?? defaultCheckSettings;
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Settings">
+    <Modal isOpen={isOpen} onClose={onClose} title="Settings" className="settings-modal">
       {loading ? (
         <div className="settings-loading">Loading...</div>
       ) : (

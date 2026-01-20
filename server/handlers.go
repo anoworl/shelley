@@ -835,6 +835,7 @@ func (s *Server) handleStreamConversation(w http.ResponseWriter, r *http.Request
 	w.Header().Set("Content-Type", "text/event-stream")
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("Connection", "keep-alive")
+	w.Header().Set("X-Accel-Buffering", "no") // Disable proxy buffering for SSE
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 
 	// Get current messages and conversation data
@@ -1065,6 +1066,7 @@ func (s *Server) handleConversationsStream(w http.ResponseWriter, r *http.Reques
 	w.Header().Set("Content-Type", "text/event-stream")
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("Connection", "keep-alive")
+	w.Header().Set("X-Accel-Buffering", "no") // Disable proxy buffering for SSE
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 
 	// Subscribe to conversation metadata updates
