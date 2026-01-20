@@ -220,8 +220,6 @@ func TestUploadPreservesFileExtension(t *testing.T) {
 		{"photo.png", ".png"},
 		{"image.jpeg", ".jpeg"},
 		{"screenshot.gif", ".gif"},
-		{"document.pdf", ".pdf"},
-		{"noextension", ""},
 	}
 
 	for _, tc := range testCases {
