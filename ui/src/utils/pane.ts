@@ -24,10 +24,14 @@ export function computeDisplayIds(
   }
   
   // Multi-pane mode: combine existing conversations with new pane if open
-  const result: (string | null)[] = [...openConversationIds];
+  let result: (string | null)[] = [...openConversationIds];
   
   // Add new pane if hasNewPane is true
-  if (hasNewPane && !result.includes(null as unknown as string)) {
+  if (hasNewPane) {
+    // Reserve a slot for new pane by trimming existing conversations if needed
+    if (result.length >= maxPanes) {
+      result = result.slice(0, maxPanes - 1);
+    }
     result.push(null);
   }
   
