@@ -92,6 +92,7 @@ function MessageInput({
   });
   const [submitting, setSubmitting] = useState(false);
   const [uploadsInProgress, setUploadsInProgress] = useState(0);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [dragCounter, setDragCounter] = useState(0);
   const [isListening, setIsListening] = useState(false);
   const [ctrlPressed, setCtrlPressed] = useState(false);
@@ -288,6 +289,25 @@ function MessageInput({
     setDragCounter((prev) => prev - 1);
   };
 
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const insertPosition = textareaRef.current?.selectionStart ?? message.length;
+      await uploadFile(file, insertPosition);
+      if (i < files.length - 1) {
+        setMessage((prev) => prev + " ");
+      }
+    }
+
+    // Reset the input so the same file can be selected again
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
   const handleDrop = async (event: React.DragEvent) => {
     event.preventDefault();
     event.stopPropagation();
@@ -473,6 +493,27 @@ function MessageInput({
           autoFocus={autoFocus}
           placeholder={(isMobile || compact) ? "" : "Message, paste image, or attach file..."}
         />
+        <input
+          ref={fileInputRef}
+          type="file"
+          multiple
+          onChange={handleFileSelect}
+          className="hidden"
+          aria-hidden="true"
+          tabIndex={-1}
+        />
+        <button
+          type="button"
+          onClick={() => fileInputRef.current?.click()}
+          disabled={isDisabled}
+          className="message-attach-btn"
+          aria-label="Attach file"
+          data-testid="attach-button"
+        >
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="20" height="20" strokeWidth="2">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M18.375 12.739l-7.693 7.693a4.5 4.5 0 01-6.364-6.364l10.94-10.94A3 3 0 1119.5 7.372L8.552 18.32m.009-.01l-.01.01m5.699-9.941l-7.81 7.81a1.5 1.5 0 002.112 2.13" />
+          </svg>
+        </button>
         {speechRecognitionAvailable && (
           <button
             type="button"
