@@ -273,6 +273,10 @@ function App() {
       const cleanedIds = openConversationIds.filter(id => validIds.has(id));
       if (cleanedIds.length !== openConversationIds.length) {
         setOpenConversationIds(cleanedIds);
+        // Also update focus if the focused conversation was removed
+        if (focusedConversationId && !cleanedIds.includes(focusedConversationId)) {
+          focusConversation(cleanedIds[0] ?? null);
+        }
       }
 
       // Try to resolve conversation from URL ID first
