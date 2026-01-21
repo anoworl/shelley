@@ -43,5 +43,5 @@ Classic PAT with `repo` scope works reliably with `gh pr create`.
 
 ## References
 
-- [cli/cli#9403](https://github.com/cli/cli/issues/9403) - Detect missing fine grain permission scopes (blocked)
+- [cli/cli#9403](https://github.com/cli/cli/issues/9403) - Detect missing fine-grained permission scopes (blocked)
 - [cli/cli#9166](https://github.com/cli/cli/issues/9166) - Cannot use fine-grained PATs to add labels to pull requests
