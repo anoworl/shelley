@@ -3,7 +3,7 @@
 **Learning:** `strings.HasPrefix` is insufficient for validating file paths when user input can contain `..` or other traversal characters. The path must be canonicalized before validation.
 **Prevention:** Always use `filepath.Clean()` (or `filepath.Abs()` if dealing with absolute paths) to resolve directory traversal sequences before performing any prefix checks or access control logic. Ensure the prefix check includes a trailing separator to prevent partial name matching (e.g., `/tmp/dir` matching `/tmp/directory`).
 
-## 2025-05-27 - Arbitrary File Write in Diff Editor
-**Vulnerability:** The `handleWriteFile` endpoint in `server/handlers.go` allowed arbitrary file writes because it only checked if the path was absolute, but failed to verify if the path was within the intended repository or worktree. This allowed an attacker to overwrite any file the server process had access to.
-**Learning:** Relying on `filepath.IsAbs` is not a security control. Applications acting on files must explicitly verify that the target path resides within a trusted boundary (sandbox or specific root directory).
-**Prevention:** Use `gitstate` or similar to resolve the repository root, then use `filepath.Rel` to ensure the target file is inside that root (checking for `..` segments). Explicitly block sensitive directories like `.git` using case-insensitive checks (`strings.EqualFold`) to handle different filesystems.
+## 2025-05-27 - Arbitrary File Write in Diff Editor (REJECTED)
+**Vulnerability:** The `handleWriteFile` endpoint in `server/handlers.go` allowed arbitrary file writes because it only checked if the path was absolute, but failed to verify if the path was within the intended repository or worktree.
+**Learning:** While technically an arbitrary file write, the maintainer established that for this single-user application where input comes from the local user (who already has filesystem access), this is not part of the threat model.
+**Prevention:** In single-user local tools, strictly enforcing sandbox boundaries might be "security theater" if it hinders functionality without mitigating a real external threat. However, for multi-user or web-exposed apps, the original fix (verifying git root and blocking `.git`) remains valid best practice.
