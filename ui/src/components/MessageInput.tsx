@@ -216,12 +216,14 @@ function MessageInput({
   }, []);
 
   const uploadFile = async (file: File, insertPosition: number) => {
-    const textBefore = message.substring(0, insertPosition);
-    const textAfter = message.substring(insertPosition);
-
-    // Add a loading indicator
+    // Add a loading indicator using functional update to get latest message
     const loadingText = `[uploading ${file.name}...]`;
-    setMessage(`${textBefore}${loadingText}${textAfter}`);
+    setMessage((currentMessage) => {
+      const safePos = Math.min(insertPosition, currentMessage.length);
+      const textBefore = currentMessage.substring(0, safePos);
+      const textAfter = currentMessage.substring(safePos);
+      return `${textBefore}${loadingText}${textAfter}`;
+    });
     setUploadsInProgress((prev) => prev + 1);
 
     try {
