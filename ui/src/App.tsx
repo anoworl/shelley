@@ -167,8 +167,9 @@ function App() {
     );
     
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Skip if in input/textarea
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      // Skip if in interactive element
+      const target = e.target as HTMLElement | null;
+      if (target?.closest('input, textarea, select, button, a, [role="button"], [contenteditable="true"]')) return;
       
       const currentIndex = displayIds.findIndex(id => id === focusedConversationId);
       // If focused pane not found in display, default to 0
