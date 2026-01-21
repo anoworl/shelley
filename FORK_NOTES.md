@@ -42,6 +42,7 @@
 - Re-enable auto-scroll when sending message to fix scroll stopping after user scrolls up (files: `ui/src/components/ChatInterface.tsx`)
 - Tune SQLite performance: increase reader pool to 10, enable mmap (1GB), increase page cache (64MB) (files: `db/db.go`, `db/pool.go`)
 - Add multi-pane layout for parallel conversations with flexible grid (1x1 to 2x3), keyboard navigation (h/l/j/k), and localStorage persistence (files: `ui/src/components/PaneGrid.tsx`, `ui/src/components/ColumnSelector.tsx`, `ui/src/components/InputModal.tsx`, `ui/src/hooks/usePaneState.ts`, `ui/src/utils/pane.ts`, `ui/src/App.tsx`, `ui/src/components/ChatInterface.tsx`, `ui/src/components/ConversationDrawer.tsx`, `ui/src/styles.css`, `KEYMAP.md`)
+- Fix migration numbering conflict with upstream: restore upstream 009-010 (parent_conversation, llm_requests), move fork-specific migrations to 100-106 (files: `db/schema/009-add-parent-conversation.sql`, `db/schema/010-add-llm-requests.sql`, `db/schema/100-106-*.sql`)
 
 ## Compatibility / behavior changes
 

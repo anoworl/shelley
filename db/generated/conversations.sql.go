@@ -13,7 +13,7 @@ const archiveConversation = `-- name: ArchiveConversation :one
 UPDATE conversations
 SET archived = TRUE, updated_at = CURRENT_TIMESTAMP
 WHERE conversation_id = ?
-RETURNING conversation_id, slug, user_initiated, created_at, updated_at, cwd, archived, agent_working, context_window_size, agent_error, github_urls, git_origin, model_id
+RETURNING conversation_id, slug, user_initiated, created_at, updated_at, cwd, archived, parent_conversation_id, agent_working, context_window_size, agent_error, github_urls, git_origin, model_id
 `
 
 func (q *Queries) ArchiveConversation(ctx context.Context, conversationID string) (Conversation, error) {
@@ -27,6 +27,7 @@ func (q *Queries) ArchiveConversation(ctx context.Context, conversationID string
 		&i.UpdatedAt,
 		&i.Cwd,
 		&i.Archived,
+		&i.ParentConversationID,
 		&i.AgentWorking,
 		&i.ContextWindowSize,
 		&i.AgentError,
@@ -62,7 +63,7 @@ func (q *Queries) CountConversations(ctx context.Context) (int64, error) {
 const createConversation = `-- name: CreateConversation :one
 INSERT INTO conversations (conversation_id, slug, user_initiated, cwd, git_origin, model_id)
 VALUES (?, ?, ?, ?, ?, ?)
-RETURNING conversation_id, slug, user_initiated, created_at, updated_at, cwd, archived, agent_working, context_window_size, agent_error, github_urls, git_origin, model_id
+RETURNING conversation_id, slug, user_initiated, created_at, updated_at, cwd, archived, parent_conversation_id, agent_working, context_window_size, agent_error, github_urls, git_origin, model_id
 `
 
 type CreateConversationParams struct {
@@ -92,6 +93,7 @@ func (q *Queries) CreateConversation(ctx context.Context, arg CreateConversation
 		&i.UpdatedAt,
 		&i.Cwd,
 		&i.Archived,
+		&i.ParentConversationID,
 		&i.AgentWorking,
 		&i.ContextWindowSize,
 		&i.AgentError,
@@ -113,7 +115,7 @@ func (q *Queries) DeleteConversation(ctx context.Context, conversationID string)
 }
 
 const getConversation = `-- name: GetConversation :one
-SELECT conversation_id, slug, user_initiated, created_at, updated_at, cwd, archived, agent_working, context_window_size, agent_error, github_urls, git_origin, model_id FROM conversations
+SELECT conversation_id, slug, user_initiated, created_at, updated_at, cwd, archived, parent_conversation_id, agent_working, context_window_size, agent_error, github_urls, git_origin, model_id FROM conversations
 WHERE conversation_id = ?
 `
 
@@ -128,6 +130,7 @@ func (q *Queries) GetConversation(ctx context.Context, conversationID string) (C
 		&i.UpdatedAt,
 		&i.Cwd,
 		&i.Archived,
+		&i.ParentConversationID,
 		&i.AgentWorking,
 		&i.ContextWindowSize,
 		&i.AgentError,
@@ -139,7 +142,7 @@ func (q *Queries) GetConversation(ctx context.Context, conversationID string) (C
 }
 
 const listAllActiveConversations = `-- name: ListAllActiveConversations :many
-SELECT conversation_id, slug, user_initiated, created_at, updated_at, cwd, archived, agent_working, context_window_size, agent_error, github_urls, git_origin, model_id FROM conversations
+SELECT conversation_id, slug, user_initiated, created_at, updated_at, cwd, archived, parent_conversation_id, agent_working, context_window_size, agent_error, github_urls, git_origin, model_id FROM conversations
 WHERE archived = FALSE
 ORDER BY updated_at DESC
 `
@@ -161,6 +164,7 @@ func (q *Queries) ListAllActiveConversations(ctx context.Context) ([]Conversatio
 			&i.UpdatedAt,
 			&i.Cwd,
 			&i.Archived,
+			&i.ParentConversationID,
 			&i.AgentWorking,
 			&i.ContextWindowSize,
 			&i.AgentError,
@@ -182,7 +186,7 @@ func (q *Queries) ListAllActiveConversations(ctx context.Context) ([]Conversatio
 }
 
 const listArchivedConversations = `-- name: ListArchivedConversations :many
-SELECT conversation_id, slug, user_initiated, created_at, updated_at, cwd, archived, agent_working, context_window_size, agent_error, github_urls, git_origin, model_id FROM conversations
+SELECT conversation_id, slug, user_initiated, created_at, updated_at, cwd, archived, parent_conversation_id, agent_working, context_window_size, agent_error, github_urls, git_origin, model_id FROM conversations
 WHERE archived = TRUE
 ORDER BY updated_at DESC
 LIMIT ? OFFSET ?
@@ -210,6 +214,7 @@ func (q *Queries) ListArchivedConversations(ctx context.Context, arg ListArchive
 			&i.UpdatedAt,
 			&i.Cwd,
 			&i.Archived,
+			&i.ParentConversationID,
 			&i.AgentWorking,
 			&i.ContextWindowSize,
 			&i.AgentError,
@@ -231,7 +236,7 @@ func (q *Queries) ListArchivedConversations(ctx context.Context, arg ListArchive
 }
 
 const listConversations = `-- name: ListConversations :many
-SELECT conversation_id, slug, user_initiated, created_at, updated_at, cwd, archived, agent_working, context_window_size, agent_error, github_urls, git_origin, model_id FROM conversations
+SELECT conversation_id, slug, user_initiated, created_at, updated_at, cwd, archived, parent_conversation_id, agent_working, context_window_size, agent_error, github_urls, git_origin, model_id FROM conversations
 WHERE archived = FALSE
 ORDER BY updated_at DESC
 LIMIT ? OFFSET ?
@@ -259,6 +264,7 @@ func (q *Queries) ListConversations(ctx context.Context, arg ListConversationsPa
 			&i.UpdatedAt,
 			&i.Cwd,
 			&i.Archived,
+			&i.ParentConversationID,
 			&i.AgentWorking,
 			&i.ContextWindowSize,
 			&i.AgentError,
@@ -280,7 +286,7 @@ func (q *Queries) ListConversations(ctx context.Context, arg ListConversationsPa
 }
 
 const searchArchivedConversations = `-- name: SearchArchivedConversations :many
-SELECT conversation_id, slug, user_initiated, created_at, updated_at, cwd, archived, agent_working, context_window_size, agent_error, github_urls, git_origin, model_id FROM conversations
+SELECT conversation_id, slug, user_initiated, created_at, updated_at, cwd, archived, parent_conversation_id, agent_working, context_window_size, agent_error, github_urls, git_origin, model_id FROM conversations
 WHERE slug LIKE '%' || ? || '%' AND archived = TRUE
 ORDER BY updated_at DESC
 LIMIT ? OFFSET ?
@@ -309,6 +315,7 @@ func (q *Queries) SearchArchivedConversations(ctx context.Context, arg SearchArc
 			&i.UpdatedAt,
 			&i.Cwd,
 			&i.Archived,
+			&i.ParentConversationID,
 			&i.AgentWorking,
 			&i.ContextWindowSize,
 			&i.AgentError,
@@ -330,7 +337,7 @@ func (q *Queries) SearchArchivedConversations(ctx context.Context, arg SearchArc
 }
 
 const searchConversations = `-- name: SearchConversations :many
-SELECT conversation_id, slug, user_initiated, created_at, updated_at, cwd, archived, agent_working, context_window_size, agent_error, github_urls, git_origin, model_id FROM conversations
+SELECT conversation_id, slug, user_initiated, created_at, updated_at, cwd, archived, parent_conversation_id, agent_working, context_window_size, agent_error, github_urls, git_origin, model_id FROM conversations
 WHERE slug LIKE '%' || ? || '%' AND archived = FALSE
 ORDER BY updated_at DESC
 LIMIT ? OFFSET ?
@@ -359,6 +366,7 @@ func (q *Queries) SearchConversations(ctx context.Context, arg SearchConversatio
 			&i.UpdatedAt,
 			&i.Cwd,
 			&i.Archived,
+			&i.ParentConversationID,
 			&i.AgentWorking,
 			&i.ContextWindowSize,
 			&i.AgentError,
@@ -383,7 +391,7 @@ const unarchiveConversation = `-- name: UnarchiveConversation :one
 UPDATE conversations
 SET archived = FALSE, updated_at = CURRENT_TIMESTAMP
 WHERE conversation_id = ?
-RETURNING conversation_id, slug, user_initiated, created_at, updated_at, cwd, archived, agent_working, context_window_size, agent_error, github_urls, git_origin, model_id
+RETURNING conversation_id, slug, user_initiated, created_at, updated_at, cwd, archived, parent_conversation_id, agent_working, context_window_size, agent_error, github_urls, git_origin, model_id
 `
 
 func (q *Queries) UnarchiveConversation(ctx context.Context, conversationID string) (Conversation, error) {
@@ -397,6 +405,7 @@ func (q *Queries) UnarchiveConversation(ctx context.Context, conversationID stri
 		&i.UpdatedAt,
 		&i.Cwd,
 		&i.Archived,
+		&i.ParentConversationID,
 		&i.AgentWorking,
 		&i.ContextWindowSize,
 		&i.AgentError,
@@ -459,7 +468,7 @@ const updateConversationCwd = `-- name: UpdateConversationCwd :one
 UPDATE conversations
 SET cwd = ?, updated_at = CURRENT_TIMESTAMP
 WHERE conversation_id = ?
-RETURNING conversation_id, slug, user_initiated, created_at, updated_at, cwd, archived, agent_working, context_window_size, agent_error, github_urls, git_origin, model_id
+RETURNING conversation_id, slug, user_initiated, created_at, updated_at, cwd, archived, parent_conversation_id, agent_working, context_window_size, agent_error, github_urls, git_origin, model_id
 `
 
 type UpdateConversationCwdParams struct {
@@ -478,6 +487,7 @@ func (q *Queries) UpdateConversationCwd(ctx context.Context, arg UpdateConversat
 		&i.UpdatedAt,
 		&i.Cwd,
 		&i.Archived,
+		&i.ParentConversationID,
 		&i.AgentWorking,
 		&i.ContextWindowSize,
 		&i.AgentError,
@@ -492,7 +502,7 @@ const updateConversationCwdAndGitOrigin = `-- name: UpdateConversationCwdAndGitO
 UPDATE conversations
 SET cwd = ?, git_origin = ?, updated_at = CURRENT_TIMESTAMP
 WHERE conversation_id = ?
-RETURNING conversation_id, slug, user_initiated, created_at, updated_at, cwd, archived, agent_working, context_window_size, agent_error, github_urls, git_origin, model_id
+RETURNING conversation_id, slug, user_initiated, created_at, updated_at, cwd, archived, parent_conversation_id, agent_working, context_window_size, agent_error, github_urls, git_origin, model_id
 `
 
 type UpdateConversationCwdAndGitOriginParams struct {
@@ -512,6 +522,7 @@ func (q *Queries) UpdateConversationCwdAndGitOrigin(ctx context.Context, arg Upd
 		&i.UpdatedAt,
 		&i.Cwd,
 		&i.Archived,
+		&i.ParentConversationID,
 		&i.AgentWorking,
 		&i.ContextWindowSize,
 		&i.AgentError,
@@ -558,7 +569,7 @@ const updateConversationSlug = `-- name: UpdateConversationSlug :one
 UPDATE conversations
 SET slug = ?, updated_at = CURRENT_TIMESTAMP
 WHERE conversation_id = ?
-RETURNING conversation_id, slug, user_initiated, created_at, updated_at, cwd, archived, agent_working, context_window_size, agent_error, github_urls, git_origin, model_id
+RETURNING conversation_id, slug, user_initiated, created_at, updated_at, cwd, archived, parent_conversation_id, agent_working, context_window_size, agent_error, github_urls, git_origin, model_id
 `
 
 type UpdateConversationSlugParams struct {
@@ -577,6 +588,7 @@ func (q *Queries) UpdateConversationSlug(ctx context.Context, arg UpdateConversa
 		&i.UpdatedAt,
 		&i.Cwd,
 		&i.Archived,
+		&i.ParentConversationID,
 		&i.AgentWorking,
 		&i.ContextWindowSize,
 		&i.AgentError,
