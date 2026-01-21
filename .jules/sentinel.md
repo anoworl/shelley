@@ -3,7 +3,8 @@
 **Learning:** `strings.HasPrefix` is insufficient for validating file paths when user input can contain `..` or other traversal characters. The path must be canonicalized before validation.
 **Prevention:** Always use `filepath.Clean()` (or `filepath.Abs()` if dealing with absolute paths) to resolve directory traversal sequences before performing any prefix checks or access control logic. Ensure the prefix check includes a trailing separator to prevent partial name matching (e.g., `/tmp/dir` matching `/tmp/directory`).
 
-## 2026-01-21 - Unrestricted File Upload Stored XSS
+## 2026-01-21 - Unrestricted File Upload Stored XSS (REJECTED)
 **Vulnerability:** The `handleUpload` function in `server/handlers.go` allowed uploading files with any extension. The `handleRead` function then served these files, setting the `Content-Type` header based on the extension or content sniffing. This allowed an attacker to upload an HTML file containing malicious scripts (Stored XSS) which would be executed when a user viewed the file via `handleRead`.
-**Learning:** Even if filenames are randomized, preserving the original file extension without validation allows attackers to control the MIME type of the served content. Content sniffing (MIME sniffing) by `http.DetectContentType` can also lead to XSS if the server falls back to it for unknown extensions.
-**Prevention:** Implement a strict allowlist of file extensions (e.g., images only) in the upload handler. Reject any upload that does not match the allowlist. Ensure that the file serving handler also respects these allowed types and does not inadvertently serve dangerous content types like `text/html`.
+**Learning:** Even if filenames are randomized, preserving the original file extension without validation allows attackers to control the MIME type of the served content.
+**Status:** REJECTED. The maintainers clarified that this is a single-user application with no external input, so this requires the user to attack themselves (Self-XSS), which is not considered a valid threat model for this project.
+**Prevention:** In multi-user systems, implement a strict allowlist of file extensions.

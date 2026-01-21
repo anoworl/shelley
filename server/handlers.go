@@ -155,20 +155,6 @@ func (s *Server) handleUpload(w http.ResponseWriter, r *http.Request) {
 	// Get file extension from the original filename
 	ext := filepath.Ext(handler.Filename)
 
-	// Security: validate extension
-	allowedExts := map[string]bool{
-		".png":  true,
-		".jpg":  true,
-		".jpeg": true,
-		".gif":  true,
-		".webp": true,
-		".svg":  true,
-	}
-	if !allowedExts[strings.ToLower(ext)] {
-		http.Error(w, "file type not allowed", http.StatusBadRequest)
-		return
-	}
-
 	// Create a unique filename in the ScreenshotDir
 	filename := filepath.Join(browse.ScreenshotDir, fmt.Sprintf("upload_%s%s", hex.EncodeToString(randBytes), ext))
 
