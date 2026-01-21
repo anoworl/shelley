@@ -3,7 +3,7 @@
 **Learning:** `strings.HasPrefix` is insufficient for validating file paths when user input can contain `..` or other traversal characters. The path must be canonicalized before validation.
 **Prevention:** Always use `filepath.Clean()` (or `filepath.Abs()` if dealing with absolute paths) to resolve directory traversal sequences before performing any prefix checks or access control logic. Ensure the prefix check includes a trailing separator to prevent partial name matching (e.g., `/tmp/dir` matching `/tmp/directory`).
 
-## 2026-01-18 - Argument Injection in Git Handlers
-**Vulnerability:** Argument injection vulnerabilities were found in `handleGitDiffFiles` and `handleGitFileDiff` in `server/git_handlers.go`. The handlers accepted a `diffID` from the URL and passed it directly to `exec.Command` as part of a git command argument (e.g. `diffID+"^"`). This allowed attackers to inject git flags (e.g. `--help` or others) by supplying a `diffID` starting with `-`.
-**Learning:** Passing user input directly to shell commands, even when using `exec.Command` (which avoids shell injection), can still lead to Argument Injection if the input can be interpreted as a flag by the invoked program.
-**Prevention:** Strictly validate all user inputs passed to external commands. Use allowlists (e.g. regex `^[0-9a-fA-F]+$`) to ensure inputs match expected formats (like commit hashes) and do not start with `-` unless explicitly intended.
+## 2026-01-18 - Argument Injection in Git Handlers (Rejected)
+**Vulnerability:** Argument injection vulnerabilities were found in `handleGitDiffFiles` and `handleGitFileDiff` in `server/git_handlers.go`. The handlers accepted a `diffID` from the URL and passed it directly to `exec.Command` as part of a git command argument.
+**Rejection:** The fix was rejected because the application is single-user with no external input. The threat model assumes the user is trusted, and malicious input would require the user to attack themselves.
+**Learning:** Security controls should align with the application's threat model. In single-user local applications, protecting against "malicious" user input may be considered unnecessary if the user is the only actor.

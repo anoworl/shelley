@@ -7,21 +7,11 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"regexp"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
 )
-
-var validGitIDRegex = regexp.MustCompile(`^[0-9a-fA-F]+$`)
-
-func isValidGitDiffID(id string) bool {
-	if id == "working" {
-		return true
-	}
-	return validGitIDRegex.MatchString(id)
-}
 
 // GitDiffInfo represents a commit or working changes
 type GitDiffInfo struct {
@@ -185,11 +175,6 @@ func (s *Server) handleGitDiffFiles(w http.ResponseWriter, r *http.Request) {
 	}
 	diffID := parts[0]
 
-	if !isValidGitDiffID(diffID) {
-		http.Error(w, "invalid diff id", http.StatusBadRequest)
-		return
-	}
-
 	cwd := r.URL.Query().Get("cwd")
 	if cwd == "" {
 		http.Error(w, "cwd parameter required", http.StatusBadRequest)
@@ -290,11 +275,6 @@ func (s *Server) handleGitFileDiff(w http.ResponseWriter, r *http.Request) {
 
 	if diffID == "" || filePath == "" {
 		http.Error(w, "invalid path", http.StatusBadRequest)
-		return
-	}
-
-	if !isValidGitDiffID(diffID) {
-		http.Error(w, "invalid diff id", http.StatusBadRequest)
 		return
 	}
 
