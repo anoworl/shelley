@@ -40,6 +40,7 @@ interface MessageProps {
   expansionBehavior?: "single" | "all";
   onOpenDiffViewer?: (commit: string) => void;
   compact?: boolean;
+  onCommentTextChange?: (text: string) => void;
 }
 
 // Inline tool indicator component
@@ -412,7 +413,7 @@ function Message({ message, followingTools, showTools = true, mergedSegments, in
         // IMPORTANT: When adding a new tool component here, also add it to:
         // 1. The tool_result case below
         // 2. TOOL_COMPONENTS map in ChatInterface.tsx
-        // See AGENT.md in this directory.
+        // See AGENTS.md in this directory.
 
         // Use specialized component for bash tool
         if (content.ToolName === "bash") {
@@ -420,7 +421,13 @@ function Message({ message, followingTools, showTools = true, mergedSegments, in
         }
         // Use specialized component for patch tool
         if (content.ToolName === "patch") {
-          return <PatchTool toolInput={content.ToolInput} isRunning={true} />;
+          return (
+            <PatchTool
+              toolInput={content.ToolInput}
+              isRunning={true}
+              onCommentTextChange={onCommentTextChange}
+            />
+          );
         }
         // Use specialized component for screenshot tool
         if (content.ToolName === "screenshot" || content.ToolName === "browser_take_screenshot") {
@@ -547,6 +554,7 @@ function Message({ message, followingTools, showTools = true, mergedSegments, in
               hasError={hasError}
               executionTime={executionTime}
               display={content.Display}
+              onCommentTextChange={onCommentTextChange}
             />
           );
         }
@@ -639,7 +647,6 @@ function Message({ message, followingTools, showTools = true, mergedSegments, in
               toolResult={content.ToolResult}
               hasError={hasError}
               executionTime={executionTime}
-              display={content.Display}
             />
           );
         }
@@ -809,7 +816,13 @@ function Message({ message, followingTools, showTools = true, mergedSegments, in
       ];
 
       return (
-        <PatchTool toolInput={{}} isRunning={false} toolResult={mockToolResult} hasError={false} />
+        <PatchTool
+          toolInput={{}}
+          isRunning={false}
+          toolResult={mockToolResult}
+          hasError={false}
+          onCommentTextChange={onCommentTextChange}
+        />
       );
     }
 
