@@ -503,7 +503,8 @@ function ChatInterface({
     const handleKeyDown = (e: KeyboardEvent) => {
       // Don't trigger if already in input or modal is open
       if (mobileInputVisible) return;
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      const target = e.target as HTMLElement | null;
+      if (target?.closest('input, textarea, select, button, a, [role="button"], [contenteditable="true"]')) return;
       
       if ((e.key === 'Enter' || e.key === ' ') && !e.shiftKey && !e.ctrlKey && !e.metaKey) {
         e.preventDefault();
@@ -523,6 +524,12 @@ function ChatInterface({
       if (e.key === 'n' && !e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey) {
         e.preventDefault();
         onNewConversation();
+      }
+      
+      // q for close pane
+      if (e.key === 'q' && !e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        e.preventDefault();
+        onClose?.();
       }
       
       // G for scroll to bottom
@@ -550,7 +557,7 @@ function ChatInterface({
     
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [compact, isFocused, mobileInputVisible, onNewConversation]);
+  }, [compact, isFocused, mobileInputVisible, onNewConversation, onClose]);
   
   // Double-tap handler for compact mode
   const handleMessagesAreaClick = (e: React.MouseEvent) => {
@@ -879,6 +886,54 @@ function ChatInterface({
   const getDisplayTitle = () => {
     return currentConversation?.slug || "Shelley";
   };
+
+  // Quick reply shortcuts (y for yes, c for continue, s for stop)
+  useEffect(() => {
+    if (!compact || !isFocused) return;
+    
+    const handleQuickReply = async (e: KeyboardEvent) => {
+      // Don't trigger if in input or modal is open
+      if (mobileInputVisible) return;
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      
+      // Helper to send message, respecting enterBehavior setting
+      const sendQuickMessage = async (msg: string) => {
+        // If agent is working, check enterBehavior setting
+        if (agentWorking) {
+          if (enterBehavior === 'stop_and_send') {
+            await handleCancel();
+            await sendMessage(msg);
+          }
+          // If enterBehavior is 'send', do nothing while agent is working
+          return;
+        }
+        await sendMessage(msg);
+      };
+      
+      // s for stop (only when agent is working)
+      if (e.key === 's' && !e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        if (agentWorking) {
+          e.preventDefault();
+          handleCancel();
+        }
+      }
+      
+      // y for sending "yes"
+      if (e.key === 'y' && !e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        e.preventDefault();
+        sendQuickMessage('yes');
+      }
+      
+      // c for sending "continue"
+      if (e.key === 'c' && !e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        e.preventDefault();
+        sendQuickMessage('continue');
+      }
+    };
+    
+    window.addEventListener('keydown', handleQuickReply);
+    return () => window.removeEventListener('keydown', handleQuickReply);
+  }, [compact, isFocused, mobileInputVisible, sendMessage, agentWorking, enterBehavior, handleCancel]);
 
   // Process messages to coalesce tool calls (memoized for Virtualizer)
   const coalescedItems = useMemo(() => {
@@ -1215,6 +1270,7 @@ function ChatInterface({
           mergedSegments={item.mergedSegments}
           indicatorMode={indicatorMode}
           expansionBehavior={expansionBehavior}
+          compact={compact}
           onOpenDiffViewer={(commit) => {
             setDiffViewerInitialCommit(commit);
             setShowDiffViewer(true);
@@ -1222,7 +1278,7 @@ function ChatInterface({
         />
       );
     },
-    [showTools, indicatorMode, expansionBehavior]
+    [showTools, indicatorMode, expansionBehavior, compact]
   );
 
   // Compute item key for Virtualizer

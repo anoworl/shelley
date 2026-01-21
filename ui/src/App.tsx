@@ -51,9 +51,11 @@ function updatePageTitle(conversation: Conversation | undefined) {
 
 function App() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [paneState, paneActions] = usePaneState(initialIdFromUrl);
+  // Don't pass initialIdFromUrl directly - it might be a slug, not an ID
+  // We'll resolve it after loading conversations
+  const [paneState, paneActions] = usePaneState(null);
   const { columnCount, rowCount, openConversationIds, focusedConversationId, maximizedConversationId, hasNewPane } = paneState;
-  const { setColumnCount, setRowCount, openConversation, closeConversation, focusConversation, maximizeConversation, restoreFromMaximized, bringToFront, openNewConversation, closeNewPane } = paneActions;
+  const { setColumnCount, setRowCount, openConversation, closeConversation, focusConversation, setOpenConversationIds, maximizeConversation, restoreFromMaximized, bringToFront, openNewConversation, closeNewPane } = paneActions;
 
   // Track CWD from previously focused conversation (for inheriting when opening new conversation)
   const [inheritedCwd, setInheritedCwd] = useState<string | null>(null);
@@ -165,8 +167,9 @@ function App() {
     );
     
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Skip if in input/textarea
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      // Skip if in interactive element
+      const target = e.target as HTMLElement | null;
+      if (target?.closest('input, textarea, select, button, a, [role="button"], [contenteditable="true"]')) return;
       
       const currentIndex = displayIds.findIndex(id => id === focusedConversationId);
       // If focused pane not found in display, default to 0
@@ -208,8 +211,7 @@ function App() {
       }
       
       // h/l: horizontal pane navigation (wrap to next/prev row at edges)
-      // j/k: vertical pane navigation (wrap top/bottom)
-      if (['h', 'l', 'j', 'k'].includes(e.key)) {
+      if (['h', 'l'].includes(e.key)) {
         e.preventDefault();
         const col = safeCurrentIndex % columnCount;
         const row = Math.floor(safeCurrentIndex / columnCount);
@@ -243,23 +245,6 @@ function App() {
               nextIndex = 0;
             }
             break;
-          case 'j': // down, wrap to top
-            if (safeCurrentIndex + columnCount < displayIds.length) {
-              nextIndex = safeCurrentIndex + columnCount;
-            } else {
-              // At bottom, wrap to same column at top
-              nextIndex = col;
-            }
-            break;
-          case 'k': // up, wrap to bottom
-            if (row > 0) {
-              nextIndex = safeCurrentIndex - columnCount;
-            } else {
-              // At top, wrap to same column at bottom (or last valid cell)
-              const bottomIndex = (totalRows - 1) * columnCount + col;
-              nextIndex = Math.min(bottomIndex, displayIds.length - 1);
-            }
-            break;
         }
       }
       
@@ -283,11 +268,22 @@ function App() {
       const convs = await api.getConversations();
       setConversations(convs);
 
+      // Clean up invalid IDs from localStorage
+      const validIds = new Set(convs.map(c => c.conversation_id));
+      const cleanedIds = openConversationIds.filter(id => validIds.has(id));
+      if (cleanedIds.length !== openConversationIds.length) {
+        setOpenConversationIds(cleanedIds);
+        // Also update focus if the focused conversation was removed
+        if (focusedConversationId && !cleanedIds.includes(focusedConversationId)) {
+          focusConversation(cleanedIds[0] ?? null);
+        }
+      }
+
       // Try to resolve conversation from URL ID first
       const urlConvId = await resolveInitialId(convs);
       if (urlConvId) {
         openConversation(urlConvId);
-      } else if (openConversationIds.length === 0 && convs.length > 0) {
+      } else if (cleanedIds.length === 0 && convs.length > 0) {
         // If no conversations are open and we have some, open the first
         openConversation(convs[0].conversation_id);
       }
@@ -301,10 +297,11 @@ function App() {
 
   const startNewConversation = () => {
     // Save current focused conversation's cwd before switching to new conversation
-    const currentConv = focusedConversationId
-      ? conversations.find(c => c.conversation_id === focusedConversationId)
-      : null;
-    setInheritedCwd(currentConv?.cwd ?? null);
+    // If already on new conversation pane (focusedConversationId === null), keep the current inheritedCwd
+    if (focusedConversationId !== null) {
+      const currentConv = conversations.find(c => c.conversation_id === focusedConversationId);
+      setInheritedCwd(currentConv?.cwd ?? null);
+    }
     openNewConversation();
     // Close drawer on mobile only
     if (window.innerWidth < 768) toggleDrawer(false);
@@ -392,7 +389,8 @@ function App() {
 
       const updatedConvs = await api.getConversations();
       setConversations(updatedConvs);
-      // New conversation pane was at the end, so keep it there
+      // Close the "new conversation" pane (hasNewPane=false) and open the real conversation
+      closeNewPane();
       openConversation(newConversationId, true);
     } catch (err) {
       console.error("Failed to send first message:", err);

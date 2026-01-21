@@ -39,6 +39,7 @@ interface MessageProps {
   // "all": expand all indicators in the same message
   expansionBehavior?: "single" | "all";
   onOpenDiffViewer?: (commit: string) => void;
+  compact?: boolean;
 }
 
 // Inline tool indicator component
@@ -86,7 +87,7 @@ function ToolIndicator({ tools, expanded, onClick }: { tools: ToolCallData[]; ex
   );
 }
 
-function Message({ message, followingTools, showTools = true, mergedSegments, indicatorMode = "inline", expansionBehavior = "single", onOpenDiffViewer }: MessageProps) {
+function Message({ message, followingTools, showTools = true, mergedSegments, indicatorMode = "inline", expansionBehavior = "single", onOpenDiffViewer, compact = false }: MessageProps) {
   // All hooks must be called before any early returns (React Rules of Hooks)
   // For merged segments, track which segment indices are expanded; for single message, use -1 as key
   const [expandedSegments, setExpandedSegments] = useState<Set<number>>(new Set());
@@ -1044,7 +1045,7 @@ function Message({ message, followingTools, showTools = true, mergedSegments, in
         {expansionBehavior === "all" ? (
           // All mode: show all tools combined in one ToolGroup
           expandedSegments.size > 0 && allTools.length > 0 && (
-            <ToolGroup key="tools-all" tools={allTools} defaultExpanded={true} />
+            <ToolGroup key="tools-all" tools={allTools} defaultExpanded={true} compact={compact} />
           )
         ) : (
           // Single mode: show each segment's tools separately
@@ -1053,7 +1054,7 @@ function Message({ message, followingTools, showTools = true, mergedSegments, in
             const isExpanded = expandedSegments.has(segIndex);
             if (hasTools && isExpanded) {
               return (
-                <ToolGroup key={`tools-${segIndex}`} tools={segment.followingTools!} defaultExpanded={true} />
+                <ToolGroup key={`tools-${segIndex}`} tools={segment.followingTools!} defaultExpanded={true} compact={compact} />
               );
             }
             return null;
@@ -1141,7 +1142,7 @@ function Message({ message, followingTools, showTools = true, mergedSegments, in
       </div>
       {/* Following tools - show when showTools is true OR locally expanded */}
       {followingTools && followingTools.length > 0 && (showTools || expandedSegments.has(-1)) && (
-        <ToolGroup tools={followingTools} defaultExpanded={expandedSegments.has(-1)} />
+        <ToolGroup tools={followingTools} defaultExpanded={expandedSegments.has(-1)} compact={compact} />
       )}
       {contextMenu && contextMenuItems.length > 0 && (
         <ContextMenu

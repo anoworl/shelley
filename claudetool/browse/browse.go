@@ -607,6 +607,12 @@ func (b *BrowseTools) readImageRun(ctx context.Context, m json.RawMessage) llm.T
 	base64Data := base64.StdEncoding.EncodeToString(imageData)
 	mediaType := "image/" + format
 
+	display := map[string]any{
+		"type": "image",
+		"url":  "/api/read?path=" + url.QueryEscape(input.Path),
+		"path": input.Path,
+	}
+
 	description := fmt.Sprintf("Image from %s (type: %s)", input.Path, mediaType)
 	if resized {
 		description += " [resized]"
@@ -622,7 +628,7 @@ func (b *BrowseTools) readImageRun(ctx context.Context, m json.RawMessage) llm.T
 			MediaType: mediaType,
 			Data:      base64Data,
 		},
-	}}
+	}, Display: display}
 }
 
 // parseTimeout parses a timeout string and returns a time.Duration

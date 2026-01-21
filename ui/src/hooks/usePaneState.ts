@@ -138,25 +138,21 @@ export function usePaneState(initialFocusedId: string | null): [PaneState, PaneA
       return;
     }
     
-    let newFocus: string | null = null;
-    
     setOpenConversationIdsState((prev) => {
       const next = prev.filter((cid) => cid !== id);
       saveToStorage(STORAGE_KEYS.openConversations, next);
-      // Determine new focus if we're closing the focused one
-      if (next.length > 0) {
-        newFocus = next[0];
-      }
+      
+      // If closing the focused conversation, focus the first remaining one
+      setFocusedConversationIdState((prevFocused) => {
+        if (prevFocused === id) {
+          const newFocus = next.length > 0 ? next[0] : null;
+          saveToStorage(STORAGE_KEYS.focusedConversation, newFocus);
+          return newFocus;
+        }
+        return prevFocused;
+      });
+      
       return next;
-    });
-    
-    // If closing the focused conversation, focus the first remaining one
-    setFocusedConversationIdState((prev) => {
-      if (prev === id) {
-        saveToStorage(STORAGE_KEYS.focusedConversation, newFocus);
-        return newFocus;
-      }
-      return prev;
     });
   }, []);
 

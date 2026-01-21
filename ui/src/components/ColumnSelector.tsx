@@ -12,6 +12,7 @@ export function GridSelector({ columns, rows, onColumnsChange, onRowsChange }: G
         {/* Columns */}
         <div className="grid-selector-row">
           <button
+            type="button"
             className="grid-selector-btn"
             onClick={() => onColumnsChange(columns - 1)}
             disabled={columns <= 1}
@@ -21,6 +22,7 @@ export function GridSelector({ columns, rows, onColumnsChange, onRowsChange }: G
           </button>
           <span className="grid-selector-value">{columns}</span>
           <button
+            type="button"
             className="grid-selector-btn"
             onClick={() => onColumnsChange(columns + 1)}
             aria-label="Increase columns"
@@ -41,6 +43,7 @@ export function GridSelector({ columns, rows, onColumnsChange, onRowsChange }: G
         {/* Rows */}
         <div className="grid-selector-row">
           <button
+            type="button"
             className="grid-selector-btn"
             onClick={() => onRowsChange(rows - 1)}
             disabled={rows <= 1}
@@ -50,6 +53,7 @@ export function GridSelector({ columns, rows, onColumnsChange, onRowsChange }: G
           </button>
           <span className="grid-selector-value">{rows}</span>
           <button
+            type="button"
             className="grid-selector-btn"
             onClick={() => onRowsChange(rows + 1)}
             aria-label="Increase rows"

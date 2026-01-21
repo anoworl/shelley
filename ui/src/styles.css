@@ -3,6 +3,10 @@
   box-sizing: border-box;
 }
 
+.hidden {
+  display: none;
+}
+
 html {
   /* iOS PWA bug fix: prevent white bar at bottom */
   min-height: calc(100% + env(safe-area-inset-top));
@@ -642,9 +646,9 @@ button {
 
 .drawer-header {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
-  padding: 0.5rem 1rem;
+  padding-left: 1rem;
   border-bottom: 1px solid var(--border);
 }
 
@@ -653,6 +657,13 @@ button {
   align-items: center;
   gap: 0.25rem;
   margin-left: auto;
+  align-self: stretch;
+}
+
+.drawer-header-actions .btn-icon {
+  height: 100%;
+  border-radius: 0;
+  padding: 0 0.5rem;
 }
 
 .drawer-title-row {
@@ -661,6 +672,7 @@ button {
   gap: 0.25rem;
   flex: 1;
   min-width: 0;
+  padding: 0.5rem 0;
 }
 
 .drawer-title {
@@ -687,6 +699,11 @@ button {
   padding-bottom: env(safe-area-inset-bottom);
   display: flex;
   flex-direction: column;
+}
+
+/* Collapsed state button - hidden by default (mobile), shown only on desktop when drawer is closed */
+.drawer-collapsed {
+  display: none;
 }
 
 .drawer-close-area {
@@ -1327,7 +1344,7 @@ button {
   background: none;
   border: none;
   cursor: pointer;
-  padding: 0.25rem;
+  padding: 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2040,6 +2057,7 @@ button {
 }
 
 /* Voice input button */
+.message-attach-btn,
 .message-voice-btn {
   flex-shrink: 0;
   width: 36px;
@@ -2058,6 +2076,24 @@ button {
     color 0.2s,
     transform 0.1s;
   cursor: pointer;
+}
+
+.message-attach-btn:hover:not(:disabled) {
+  background: var(--gray-100);
+  color: var(--text-primary);
+}
+
+.dark .message-attach-btn:hover:not(:disabled) {
+  background: var(--gray-700);
+}
+
+.message-attach-btn:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+.message-attach-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
 }
 
 .message-voice-btn:hover:not(:disabled):not(.listening) {
@@ -3998,7 +4034,7 @@ svg {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.5rem 0.75rem;
+  padding: 0.25rem 0.5rem;
   background: var(--bg-secondary);
   border: 1px solid var(--border);
   border-radius: 0.375rem;
@@ -4037,8 +4073,12 @@ svg {
 }
 
 .tool-group-summary {
-  font-size: 0.75rem;
+  font-size: 0.875rem;
   color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
 }
 
 .tool-group-header-right {
@@ -4051,7 +4091,7 @@ svg {
   display: flex;
   align-items: center;
   gap: 0.25rem;
-  font-size: 0.75rem;
+  font-size: 0.875rem;
 }
 
 .tool-group-success-count {
@@ -4067,7 +4107,7 @@ svg {
 }
 
 .tool-group-time {
-  font-size: 0.75rem;
+  font-size: 0.875rem;
   color: var(--text-secondary);
 }
 
@@ -4078,7 +4118,7 @@ svg {
 }
 
 .tool-group-item {
-  margin: 0.25rem 0;
+  margin: 0.125rem 0;
 }
 
 .tool-group-item .message-tool {
@@ -4087,6 +4127,331 @@ svg {
 
 .tool-group-item .tool-result-details {
   font-size: 0.8125rem;
+}
+
+/* Compact mode for tool groups */
+.message-tool-group.compact {
+  margin: 0.125rem 0;
+}
+
+.message-tool-group.compact .message-content {
+  padding: 0.125rem 0;
+}
+
+.message-tool-group.compact .tool-group-header {
+  padding: 0.125rem 0.375rem;
+}
+
+.message-tool-group.compact .tool-group-header-left {
+  gap: 0.25rem;
+}
+
+.message-tool-group.compact .tool-group-chevron {
+  width: 0.75rem;
+  height: 0.75rem;
+}
+
+.message-tool-group.compact .tool-group-summary {
+  font-size: 0.6875rem;
+}
+
+.message-tool-group.compact .tool-group-header-right {
+  gap: 0.5rem;
+}
+
+.message-tool-group.compact .tool-group-status {
+  font-size: 0.6875rem;
+}
+
+.message-tool-group.compact .tool-group-time {
+  font-size: 0.6875rem;
+}
+
+.message-tool-group.compact .tool-group-content {
+  margin-top: 0.125rem;
+  padding-left: 0.375rem;
+}
+
+.message-tool-group.compact .tool-group-item {
+  margin: 0.125rem 0;
+}
+
+/* Compact mode for tools inside tool-group */
+.message-tool-group.compact .tool-group-item .bash-tool-header {
+  padding: 0.125rem 0.375rem;
+  font-size: 0.6875rem;
+}
+
+.message-tool-group.compact .tool-group-item .bash-tool-command {
+  font-size: 0.6875rem;
+}
+
+.message-tool-group.compact .tool-group-item .tool-header {
+  padding: 0.125rem 0.375rem;
+  font-size: 0.6875rem;
+}
+
+.message-tool-group.compact .tool-group-item .tool-command {
+  font-size: 0.6875rem;
+}
+
+.message-tool-group.compact .tool-group-item .tool-emoji {
+  font-size: 0.6875rem;
+}
+
+.message-tool-group.compact .tool-group-item .bash-tool-emoji {
+  font-size: 0.6875rem;
+}
+
+.message-tool-group.compact .tool-group-item .bash-tool-toggle {
+  padding: 0;
+}
+
+.message-tool-group.compact .tool-group-item .tool-toggle {
+  padding: 0;
+}
+
+.message-tool-group.compact .tool-group-item .bash-tool-running {
+  font-size: 0.6875rem;
+}
+
+.message-tool-group.compact .tool-group-item .bash-tool-success {
+  font-size: 0.6875rem;
+}
+
+.message-tool-group.compact .tool-group-item .bash-tool-error {
+  font-size: 0.6875rem;
+}
+
+.message-tool-group.compact .tool-group-item .bash-tool-cancelled {
+  font-size: 0.6875rem;
+}
+
+.message-tool-group.compact .tool-group-item .bash-tool-time {
+  font-size: 0.6875rem;
+}
+
+.message-tool-group.compact .tool-group-item .tool-running {
+  font-size: 0.6875rem;
+}
+
+.message-tool-group.compact .tool-group-item .tool-success {
+  font-size: 0.6875rem;
+}
+
+.message-tool-group.compact .tool-group-item .tool-error {
+  font-size: 0.6875rem;
+}
+
+.message-tool-group.compact .tool-group-item .tool-time {
+  font-size: 0.6875rem;
+}
+
+/* patch-tool compact */
+.message-tool-group.compact .tool-group-item .patch-tool-header {
+  padding: 0.125rem 0.375rem;
+  font-size: 0.6875rem;
+}
+
+.message-tool-group.compact .tool-group-item .patch-tool-filename {
+  font-size: 0.6875rem;
+}
+
+.message-tool-group.compact .tool-group-item .patch-tool-emoji {
+  font-size: 0.6875rem;
+}
+
+.message-tool-group.compact .tool-group-item .patch-tool-toggle {
+  padding: 0;
+}
+
+.message-tool-group.compact .tool-group-item .patch-tool-success {
+  font-size: 0.6875rem;
+}
+
+.message-tool-group.compact .tool-group-item .patch-tool-error {
+  font-size: 0.6875rem;
+}
+
+.message-tool-group.compact .tool-group-item .patch-tool-running {
+  font-size: 0.6875rem;
+}
+
+.message-tool-group.compact .tool-group-item .patch-tool-time {
+  font-size: 0.6875rem;
+}
+
+/* screenshot-tool compact */
+.message-tool-group.compact .tool-group-item .screenshot-tool-header {
+  padding: 0.125rem 0.375rem;
+  font-size: 0.6875rem;
+}
+
+.message-tool-group.compact .tool-group-item .screenshot-tool-filename {
+  font-size: 0.6875rem;
+}
+
+.message-tool-group.compact .tool-group-item .screenshot-tool-emoji {
+  font-size: 0.6875rem;
+}
+
+.message-tool-group.compact .tool-group-item .screenshot-tool-toggle {
+  padding: 0;
+}
+
+.message-tool-group.compact .tool-group-item .screenshot-tool-success {
+  font-size: 0.6875rem;
+}
+
+.message-tool-group.compact .tool-group-item .screenshot-tool-error {
+  font-size: 0.6875rem;
+}
+
+.message-tool-group.compact .tool-group-item .screenshot-tool-running {
+  font-size: 0.6875rem;
+}
+
+.message-tool-group.compact .tool-group-item .screenshot-tool-time {
+  font-size: 0.6875rem;
+}
+
+/* Compact mode for standalone tools (outside tool-group) */
+.message-tool.tools-compact .bash-tool-header {
+  padding: 0.125rem 0.375rem;
+  font-size: 0.6875rem;
+}
+
+.message-tool.tools-compact .bash-tool-command {
+  font-size: 0.6875rem;
+}
+
+.message-tool.tools-compact .tool-header {
+  padding: 0.125rem 0.375rem;
+  font-size: 0.6875rem;
+}
+
+.message-tool.tools-compact .tool-command {
+  font-size: 0.6875rem;
+}
+
+.message-tool.tools-compact .tool-emoji {
+  font-size: 0.6875rem;
+}
+
+.message-tool.tools-compact .bash-tool-emoji {
+  font-size: 0.6875rem;
+}
+
+.message-tool.tools-compact .bash-tool-toggle {
+  padding: 0;
+}
+
+.message-tool.tools-compact .tool-toggle {
+  padding: 0;
+}
+
+.message-tool.tools-compact .bash-tool-running {
+  font-size: 0.6875rem;
+}
+
+.message-tool.tools-compact .bash-tool-success {
+  font-size: 0.6875rem;
+}
+
+.message-tool.tools-compact .bash-tool-error {
+  font-size: 0.6875rem;
+}
+
+.message-tool.tools-compact .bash-tool-cancelled {
+  font-size: 0.6875rem;
+}
+
+.message-tool.tools-compact .bash-tool-time {
+  font-size: 0.6875rem;
+}
+
+.message-tool.tools-compact .tool-running {
+  font-size: 0.6875rem;
+}
+
+.message-tool.tools-compact .tool-success {
+  font-size: 0.6875rem;
+}
+
+.message-tool.tools-compact .tool-error {
+  font-size: 0.6875rem;
+}
+
+.message-tool.tools-compact .tool-time {
+  font-size: 0.6875rem;
+}
+
+/* patch-tool compact (standalone) */
+.message-tool.tools-compact .patch-tool-header {
+  padding: 0.125rem 0.375rem;
+  font-size: 0.6875rem;
+}
+
+.message-tool.tools-compact .patch-tool-filename {
+  font-size: 0.6875rem;
+}
+
+.message-tool.tools-compact .patch-tool-emoji {
+  font-size: 0.6875rem;
+}
+
+.message-tool.tools-compact .patch-tool-toggle {
+  padding: 0;
+}
+
+.message-tool.tools-compact .patch-tool-success {
+  font-size: 0.6875rem;
+}
+
+.message-tool.tools-compact .patch-tool-error {
+  font-size: 0.6875rem;
+}
+
+.message-tool.tools-compact .patch-tool-running {
+  font-size: 0.6875rem;
+}
+
+.message-tool.tools-compact .patch-tool-time {
+  font-size: 0.6875rem;
+}
+
+/* screenshot-tool compact (standalone) */
+.message-tool.tools-compact .screenshot-tool-header {
+  padding: 0.125rem 0.375rem;
+  font-size: 0.6875rem;
+}
+
+.message-tool.tools-compact .screenshot-tool-filename {
+  font-size: 0.6875rem;
+}
+
+.message-tool.tools-compact .screenshot-tool-emoji {
+  font-size: 0.6875rem;
+}
+
+.message-tool.tools-compact .screenshot-tool-toggle {
+  padding: 0;
+}
+
+.message-tool.tools-compact .screenshot-tool-success {
+  font-size: 0.6875rem;
+}
+
+.message-tool.tools-compact .screenshot-tool-error {
+  font-size: 0.6875rem;
+}
+
+.message-tool.tools-compact .screenshot-tool-running {
+  font-size: 0.6875rem;
+}
+
+.message-tool.tools-compact .screenshot-tool-time {
+  font-size: 0.6875rem;
 }
 
 /* Markdown Content Styles */
@@ -4444,12 +4809,10 @@ svg {
 
 .compact-mode .header {
   padding: 0 0.5rem;
-  padding-top: env(safe-area-inset-top, 0px);
   gap: 0.25rem;
   height: 1.5rem;
   min-height: 0;
   overflow: visible;
-  box-sizing: content-box;
 }
 
 .compact-mode .header-info {
@@ -4580,7 +4943,7 @@ svg {
 }
 
 .input-modal {
-  background-color: var(--bg-primary);
+  background-color: var(--bg-base);
   border-radius: 0.5rem;
   width: 100%;
   max-width: 600px;
@@ -4595,7 +4958,7 @@ svg {
   font-weight: 500;
   border-bottom: 1px solid var(--border-color);
   color: var(--text-primary);
-  background-color: var(--bg-primary);
+  background-color: var(--bg-base);
 }
 
 .input-modal .message-input-container {
