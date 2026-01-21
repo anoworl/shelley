@@ -242,13 +242,18 @@ git commit -m "scope: description"
 # Push to fork
 git push -u origin feature-name
 
-# Create PR with gh CLI
-gh pr create --title "scope: description" --body "## What
+# Create PR with REST API (Fine-grained PAT compatible)
+# Note: `gh pr create` fails with Fine-grained PAT, use REST API instead
+gh api repos/anoworl/shelley/pulls -X POST \
+  -f title="scope: description" \
+  -f body="## What
 ...
 
 ## Why
 ...
 
 ## How
-..." --base main
+..." \
+  -f head="feature-name" \
+  -f base="main"
 ```
