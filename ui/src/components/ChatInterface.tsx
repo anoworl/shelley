@@ -503,7 +503,8 @@ function ChatInterface({
     const handleKeyDown = (e: KeyboardEvent) => {
       // Don't trigger if already in input or modal is open
       if (mobileInputVisible) return;
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      const target = e.target as HTMLElement | null;
+      if (target?.closest('input, textarea, select, button, a, [role="button"], [contenteditable="true"]')) return;
       
       if ((e.key === 'Enter' || e.key === ' ') && !e.shiftKey && !e.ctrlKey && !e.metaKey) {
         e.preventDefault();
