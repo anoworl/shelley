@@ -1279,10 +1279,11 @@ function ChatInterface({
             setDiffViewerInitialCommit(commit);
             setShowDiffViewer(true);
           }}
+          onCommentTextChange={setDiffCommentText}
         />
       );
     },
-    [showTools, indicatorMode, expansionBehavior, compact]
+    [showTools, indicatorMode, expansionBehavior, compact, setDiffCommentText]
   );
 
   // Compute item key for Virtualizer

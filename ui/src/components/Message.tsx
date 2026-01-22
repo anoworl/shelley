@@ -88,7 +88,7 @@ function ToolIndicator({ tools, expanded, onClick }: { tools: ToolCallData[]; ex
   );
 }
 
-function Message({ message, followingTools, showTools = true, mergedSegments, indicatorMode = "inline", expansionBehavior = "single", onOpenDiffViewer, compact = false }: MessageProps) {
+function Message({ message, followingTools, showTools = true, mergedSegments, indicatorMode = "inline", expansionBehavior = "single", onOpenDiffViewer, compact = false, onCommentTextChange }: MessageProps) {
   // All hooks must be called before any early returns (React Rules of Hooks)
   // For merged segments, track which segment indices are expanded; for single message, use -1 as key
   const [expandedSegments, setExpandedSegments] = useState<Set<number>>(new Set());
@@ -798,22 +798,28 @@ function Message({ message, followingTools, showTools = true, mergedSegments, in
     }
 
     // Infer tool type from display content if tool name not provided
-    const inferredToolName =
-      toolName ||
-      (typeof display === "string" && display.includes("---") && display.includes("+++")
-        ? "patch"
-        : undefined);
+    const isPatchDisplay =
+      (typeof display === "string" && display.includes("---") && display.includes("+++")) ||
+      (typeof display === "object" &&
+        display !== null &&
+        "path" in display &&
+        "oldContent" in display &&
+        "newContent" in display);
+    const inferredToolName = toolName || (isPatchDisplay ? "patch" : undefined);
 
     // Render patch tool displays using PatchTool component
-    if (inferredToolName === "patch" && typeof display === "string") {
-      // Create a mock toolResult with the diff in Text field
-      const mockToolResult: LLMContent[] = [
-        {
-          ID: toolDisplay.tool_use_id,
-          Type: 6, // tool_result
-          Text: display,
-        },
-      ];
+    if (inferredToolName === "patch" && isPatchDisplay) {
+      // Create a mock toolResult for string diff format
+      const mockToolResult: LLMContent[] =
+        typeof display === "string"
+          ? [
+              {
+                ID: toolDisplay.tool_use_id,
+                Type: 6, // tool_result
+                Text: display,
+              },
+            ]
+          : [];
 
       return (
         <PatchTool
@@ -821,6 +827,7 @@ function Message({ message, followingTools, showTools = true, mergedSegments, in
           isRunning={false}
           toolResult={mockToolResult}
           hasError={false}
+          display={display}
           onCommentTextChange={onCommentTextChange}
         />
       );
@@ -1058,7 +1065,7 @@ function Message({ message, followingTools, showTools = true, mergedSegments, in
         {expansionBehavior === "all" ? (
           // All mode: show all tools combined in one ToolGroup
           expandedSegments.size > 0 && allTools.length > 0 && (
-            <ToolGroup key="tools-all" tools={allTools} defaultExpanded={true} compact={compact} />
+            <ToolGroup key="tools-all" tools={allTools} defaultExpanded={true} compact={compact} onCommentTextChange={onCommentTextChange} />
           )
         ) : (
           // Single mode: show each segment's tools separately
@@ -1067,7 +1074,7 @@ function Message({ message, followingTools, showTools = true, mergedSegments, in
             const isExpanded = expandedSegments.has(segIndex);
             if (hasTools && isExpanded) {
               return (
-                <ToolGroup key={`tools-${segIndex}`} tools={segment.followingTools!} defaultExpanded={true} compact={compact} />
+                <ToolGroup key={`tools-${segIndex}`} tools={segment.followingTools!} defaultExpanded={true} compact={compact} onCommentTextChange={onCommentTextChange} />
               );
             }
             return null;
@@ -1155,7 +1162,7 @@ function Message({ message, followingTools, showTools = true, mergedSegments, in
       </div>
       {/* Following tools - show when showTools is true OR locally expanded */}
       {followingTools && followingTools.length > 0 && (showTools || expandedSegments.has(-1)) && (
-        <ToolGroup tools={followingTools} defaultExpanded={expandedSegments.has(-1)} compact={compact} />
+        <ToolGroup tools={followingTools} defaultExpanded={expandedSegments.has(-1)} compact={compact} onCommentTextChange={onCommentTextChange} />
       )}
       {contextMenu && contextMenuItems.length > 0 && (
         <ContextMenu
