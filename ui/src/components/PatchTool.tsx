@@ -73,6 +73,60 @@ function loadMonaco(): Promise<typeof Monaco> {
 }
 
 // Simple diff view component (default)
+// Parse unified diff to extract filename and line info
+function parseDiff(diffText: string, fallbackPath: string) {
+  if (!diffText) return { filename: fallbackPath, parsedLines: [] as { text: string; lineNumber: number | null; type: string }[] };
+
+  const rawLines = diffText.split("\n");
+  let filename = fallbackPath;
+  let currentLine = 0;
+  const parsedLines: { text: string; lineNumber: number | null; type: string }[] = [];
+
+  for (const line of rawLines) {
+    // Extract filename from diff header
+    if (line.startsWith("---")) {
+      const match = line.match(/^---\s+(.+?)\s*$/);
+      if (match) {
+        filename = match[1].replace(/^[ab]\//, "");
+      }
+      parsedLines.push({ text: line, lineNumber: null, type: "header" });
+      continue;
+    }
+
+    if (line.startsWith("+++")) {
+      parsedLines.push({ text: line, lineNumber: null, type: "header" });
+      continue;
+    }
+
+    // Parse hunk header @@ -old,count +new,count @@
+    const hunkMatch = line.match(/@@ -\d+(?:,\d+)? \+(\d+)/);
+    if (hunkMatch) {
+      currentLine = parseInt(hunkMatch[1], 10);
+      parsedLines.push({ text: line, lineNumber: null, type: "hunk" });
+      continue;
+    }
+
+    // Addition line
+    if (line.startsWith("+")) {
+      parsedLines.push({ text: line, lineNumber: currentLine, type: "addition" });
+      currentLine++;
+      continue;
+    }
+
+    // Deletion line (no line number in new file)
+    if (line.startsWith("-")) {
+      parsedLines.push({ text: line, lineNumber: null, type: "deletion" });
+      continue;
+    }
+
+    // Context line
+    parsedLines.push({ text: line, lineNumber: currentLine, type: "context" });
+    currentLine++;
+  }
+
+  return { filename, parsedLines };
+}
+
 function SimpleDiffView({
   displayData,
   executionTime,
@@ -80,11 +134,11 @@ function SimpleDiffView({
   displayData: PatchDisplayData | null;
   executionTime?: string;
 }) {
-  // Get diff text from displayData or fall back to empty
+  // Get diff text and path from displayData
   const diff = displayData?.diff || "";
+  const path = displayData?.path || "";
 
-  // Parse unified diff to extract lines
-  const lines = diff ? diff.split("\n") : [];
+  const { parsedLines } = parseDiff(diff, path);
 
   return (
     <div className="patch-tool-section">
@@ -94,27 +148,31 @@ function SimpleDiffView({
           <span className="patch-tool-time">{executionTime}</span>
         </div>
       )}
-      <pre className="patch-tool-diff">
-        {lines.map((line, idx) => {
-          // Determine line type for styling
-          let className = "patch-diff-line";
-          if (line.startsWith("+") && !line.startsWith("+++")) {
-            className += " patch-diff-addition";
-          } else if (line.startsWith("-") && !line.startsWith("---")) {
-            className += " patch-diff-deletion";
-          } else if (line.startsWith("@@")) {
-            className += " patch-diff-hunk";
-          } else if (line.startsWith("---") || line.startsWith("+++")) {
-            className += " patch-diff-header";
-          }
+      <div className="patch-tool-diff">
+        {parsedLines.map((pl, idx) => {
+          const className = `patch-diff-line patch-diff-${pl.type}`;
+          const lineUrl = pl.lineNumber ? buildVSCodeUrl(path, pl.lineNumber) : null;
 
           return (
             <div key={idx} className={className}>
-              {line || " "}
+              <span className="patch-diff-line-number">
+                {lineUrl && (
+                  <a href={lineUrl} title={`Open line ${pl.lineNumber} in VSCode`}>
+                    {pl.lineNumber}
+                  </a>
+                )}
+              </span>
+              <span className="patch-diff-line-content">
+                {pl.type === "addition" || pl.type === "deletion"
+                  ? pl.text[0] + " " + pl.text.slice(1)
+                  : pl.type === "context"
+                    ? "  " + pl.text
+                    : pl.text || " "}
+              </span>
             </div>
           );
         })}
-      </pre>
+      </div>
     </div>
   );
 }
