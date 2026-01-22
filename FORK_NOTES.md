@@ -1,7 +1,7 @@
 # Fork Notes
 
 - Upstream: [boldsoftware/shelley](https://github.com/boldsoftware/shelley)
-- Base ref: `6bfc75b`
+- Base ref: `6bfc75b` → synced to `e5c9eac`
 - Fork: [anoworl/shelley](https://github.com/anoworl/shelley)
 - Purpose: Battle-tested tweaks from heavy daily use
 
@@ -43,6 +43,8 @@
 - Tune SQLite performance: increase reader pool to 10, enable mmap (1GB), increase page cache (64MB) (files: `db/db.go`, `db/pool.go`)
 - Add multi-pane layout for parallel conversations with flexible grid (1x1 to 2x3), keyboard navigation (h/l/j/k), and localStorage persistence (files: `ui/src/components/PaneGrid.tsx`, `ui/src/components/ColumnSelector.tsx`, `ui/src/components/InputModal.tsx`, `ui/src/hooks/usePaneState.ts`, `ui/src/utils/pane.ts`, `ui/src/App.tsx`, `ui/src/components/ChatInterface.tsx`, `ui/src/components/ConversationDrawer.tsx`, `ui/src/styles.css`, `KEYMAP.md`)
 - Fix migration numbering conflict with upstream: restore upstream 009-010 (parent_conversation, llm_requests), move fork-specific migrations to 100-106 (files: `db/schema/009-add-parent-conversation.sql`, `db/schema/010-add-llm-requests.sql`, `db/schema/100-106-*.sql`)
+- Sync upstream: Monaco diff view, AGENT.md→AGENTS.md rename, mobile input improvements, context window calculation fix, read_image base64 display (upstream `e5c9eac`)
+- Add Monaco Diff View toggle to Settings; default is SimpleDiffView with line numbers and VSCode links (files: `ui/src/components/SettingsModal.tsx`, `ui/src/components/PatchTool.tsx`)
 
 ## Compatibility / behavior changes
 

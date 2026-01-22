@@ -20,11 +20,23 @@ const getAvailableModels = () => {
   return models.filter((m) => m.ready).map((m) => ({ id: m.id, name: m.id }));
 };
 
+// Local storage keys for client-side settings
+const MONACO_DIFF_KEY = "shelley-use-monaco-diff";
+
 function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const [settings, setSettings] = useState<Settings>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // Client-side settings (localStorage)
+  const [useMonacoDiff, setUseMonacoDiff] = useState(() => {
+    try {
+      return localStorage.getItem(MONACO_DIFF_KEY) === "true";
+    } catch {
+      return false;
+    }
+  });
 
   useEffect(() => {
     if (isOpen) {
@@ -49,6 +61,17 @@ function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     setSaving(true);
     setError(null);
     try {
+      // Save client-side settings to localStorage
+      try {
+        if (useMonacoDiff) {
+          localStorage.setItem(MONACO_DIFF_KEY, "true");
+        } else {
+          localStorage.removeItem(MONACO_DIFF_KEY);
+        }
+      } catch {
+        // Ignore localStorage errors
+      }
+      
       await api.updateSettings(settings);
       // Notify all ChatInterface instances to reload settings
       window.dispatchEvent(new CustomEvent("shelley-settings-changed"));
@@ -162,6 +185,20 @@ function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
             </div>
             <p className="settings-field-description">
               Controls what happens when you press Enter while the agent is working.
+            </p>
+
+            <div className="settings-row">
+              <label className="settings-checkbox-label">
+                <input
+                  type="checkbox"
+                  checked={useMonacoDiff}
+                  onChange={(e) => setUseMonacoDiff(e.target.checked)}
+                />
+                <span>Use Monaco Diff View</span>
+              </label>
+            </div>
+            <p className="settings-field-description">
+              Use Monaco editor for side-by-side diff view in patch tool. Requires page reload to take effect.
             </p>
           </div>
 

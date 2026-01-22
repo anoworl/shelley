@@ -149,11 +149,12 @@ interface CoalescedToolCallProps {
   toolEndTime?: string | null;
   hasResult?: boolean;
   display?: unknown;
+  onCommentTextChange?: (text: string) => void;
 }
 
 // Map tool names to their specialized components.
 // IMPORTANT: When adding a new tool here, also add it to Message.tsx renderContent()
-// for both tool_use and tool_result cases. See AGENT.md in this directory.
+// for both tool_use and tool_result cases. See AGENTS.md in this directory.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const TOOL_COMPONENTS: Record<string, React.ComponentType<any>> = {
   bash: BashTool,
@@ -181,6 +182,7 @@ function CoalescedToolCall({
   toolEndTime,
   hasResult,
   display,
+  onCommentTextChange,
 }: CoalescedToolCallProps) {
   // Calculate execution time if available
   let executionTime = "";
@@ -209,6 +211,8 @@ function CoalescedToolCall({
       ...(toolName === "browser_recent_console_logs" || toolName === "browser_clear_console_logs"
         ? { toolName }
         : {}),
+      // Patch tool can add comments
+      ...(toolName === "patch" && onCommentTextChange ? { onCommentTextChange } : {}),
     };
     return <ToolComponent {...props} />;
   }
@@ -1275,10 +1279,11 @@ function ChatInterface({
             setDiffViewerInitialCommit(commit);
             setShowDiffViewer(true);
           }}
+          onCommentTextChange={setDiffCommentText}
         />
       );
     },
-    [showTools, indicatorMode, expansionBehavior, compact]
+    [showTools, indicatorMode, expansionBehavior, compact, setDiffCommentText]
   );
 
   // Compute item key for Virtualizer

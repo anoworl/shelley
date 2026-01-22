@@ -18,6 +18,7 @@ interface ToolGroupProps {
   tools: ToolCallData[];
   defaultExpanded?: boolean;
   compact?: boolean;
+  onCommentTextChange?: (text: string) => void;
 }
 
 // Map tool names to their specialized components
@@ -39,7 +40,7 @@ const TOOL_COMPONENTS: Record<string, React.ComponentType<any>> = {
   deploy_self: DeploySelfTool,
 };
 
-function ToolGroup({ tools, defaultExpanded = false, compact = false }: ToolGroupProps) {
+function ToolGroup({ tools, defaultExpanded = false, compact = false, onCommentTextChange }: ToolGroupProps) {
   const [expanded, setExpanded] = useState(defaultExpanded);
 
   // Count tools by name
@@ -102,6 +103,7 @@ function ToolGroup({ tools, defaultExpanded = false, compact = false }: ToolGrou
         ...(toolName === "browser_recent_console_logs" || toolName === "browser_clear_console_logs"
           ? { toolName }
           : {}),
+        ...(toolName === "patch" && onCommentTextChange ? { onCommentTextChange } : {}),
       };
       return (
         <div key={tool.toolUseId || index} className="tool-group-item">
