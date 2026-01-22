@@ -129,10 +129,8 @@ function parseDiff(diffText: string, fallbackPath: string) {
 
 function SimpleDiffView({
   displayData,
-  executionTime,
 }: {
   displayData: PatchDisplayData | null;
-  executionTime?: string;
 }) {
   // Get diff text and path from displayData
   const diff = displayData?.diff || "";
@@ -141,14 +139,7 @@ function SimpleDiffView({
   const { parsedLines } = parseDiff(diff, path);
 
   return (
-    <div className="patch-tool-section">
-      {executionTime && (
-        <div className="patch-tool-label">
-          <span>Diff:</span>
-          <span className="patch-tool-time">{executionTime}</span>
-        </div>
-      )}
-      <div className="patch-tool-diff">
+    <div className="patch-tool-diff">
         {parsedLines.map((pl, idx) => {
           const className = `patch-diff-line patch-diff-${pl.type}`;
           const lineUrl = pl.lineNumber ? buildVSCodeUrl(path, pl.lineNumber) : null;
@@ -173,7 +164,6 @@ function SimpleDiffView({
           );
         })}
       </div>
-    </div>
   );
 }
 
@@ -568,49 +558,54 @@ function PatchTool({
     >
       <div className="patch-tool-header" onClick={() => setIsExpanded(!isExpanded)}>
         <div className="patch-tool-summary">
+          <button
+            className="patch-tool-toggle"
+            aria-label={isExpanded ? "Collapse" : "Expand"}
+            aria-expanded={isExpanded}
+          >
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 12 12"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              style={{
+                transform: isExpanded ? "rotate(90deg)" : "rotate(0deg)",
+                transition: "transform 0.2s",
+              }}
+            >
+              <path
+                d="M4.5 3L7.5 6L4.5 9"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </button>
           <span className={`patch-tool-emoji ${isRunning ? "running" : ""}`}>🖋️</span>
           <span className="patch-tool-filename">{filename}</span>
-          {isComplete && hasError && <span className="patch-tool-error">✗</span>}
-          {isComplete && !hasError && <span className="patch-tool-success">✓</span>}
         </div>
-        <button
-          className="patch-tool-toggle"
-          aria-label={isExpanded ? "Collapse" : "Expand"}
-          aria-expanded={isExpanded}
-        >
-          <svg
-            width="12"
-            height="12"
-            viewBox="0 0 12 12"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            style={{
-              transform: isExpanded ? "rotate(90deg)" : "rotate(0deg)",
-              transition: "transform 0.2s",
-            }}
-          >
-            <path
-              d="M4.5 3L7.5 6L4.5 9"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </button>
+        <div className="patch-tool-header-right">
+          {isComplete && (
+            <span className="patch-tool-status">
+              {hasError ? (
+                <span className="patch-tool-error">✗</span>
+              ) : (
+                <span className="patch-tool-success">✓</span>
+              )}
+            </span>
+          )}
+          {isComplete && executionTime && (
+            <span className="patch-tool-time">{executionTime}</span>
+          )}
+        </div>
       </div>
 
       {isExpanded && (
         <div className="patch-tool-details">
           {isComplete && !hasError && displayData && (
             <div className="patch-tool-section">
-              {executionTime && (
-                <div className="patch-tool-label">
-                  <span>Diff:</span>
-                  <span className="patch-tool-time">{executionTime}</span>
-                </div>
-              )}
-
               {useMonaco ? (
                 <MonacoDiffView
                   displayData={displayData}
@@ -619,10 +614,7 @@ function PatchTool({
                   filename={filename}
                 />
               ) : (
-                <SimpleDiffView
-                  displayData={displayData}
-                  executionTime={undefined} // Already shown above
-                />
+                <SimpleDiffView displayData={displayData} />
               )}
             </div>
           )}
@@ -630,8 +622,7 @@ function PatchTool({
           {isComplete && hasError && (
             <div className="patch-tool-section">
               <div className="patch-tool-label">
-                <span>Error:</span>
-                {executionTime && <span className="patch-tool-time">{executionTime}</span>}
+                <span>Error</span>
               </div>
               <pre className="patch-tool-error-message">{errorMessage || "Patch failed"}</pre>
             </div>
@@ -639,7 +630,7 @@ function PatchTool({
 
           {isRunning && (
             <div className="patch-tool-section">
-              <div className="patch-tool-label">Applying patch...</div>
+              <div className="patch-tool-label">Applying patch</div>
             </div>
           )}
         </div>
