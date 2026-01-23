@@ -27,11 +27,17 @@ export default defineConfig({
     video: 'on-first-retry',
   },
 
-  /* Just test mobile Chrome for simplicity */
+  /* Test both mobile and desktop */
   projects: [
     {
       name: 'Mobile Chrome',
       use: { ...devices['Pixel 5'] },
+      testIgnore: /patch-comment\.spec\.ts/, // Skip comment tests on mobile
+    },
+    {
+      name: 'Desktop Chrome',
+      use: { ...devices['Desktop Chrome'] },
+      testMatch: /patch-comment\.spec\.ts/, // Only run comment tests on desktop
     },
   ],
 
