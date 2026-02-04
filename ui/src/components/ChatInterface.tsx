@@ -1692,6 +1692,8 @@ function ChatInterface({
           conversationTitle={currentConversation?.slug || undefined}
           enterBehavior={enterBehavior}
           persistKey={conversationId || "new-conversation"}
+          injectedText={diffCommentText}
+          onClearInjectedText={() => setDiffCommentText("")}
         />
       ) : (
         // Normal mode: inline input

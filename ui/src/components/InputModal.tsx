@@ -11,6 +11,8 @@ interface InputModalProps {
   conversationTitle?: string;
   enterBehavior?: "send" | "stop_and_send";
   persistKey?: string;
+  injectedText?: string;
+  onClearInjectedText?: () => void;
 }
 
 export function InputModal({
@@ -23,6 +25,8 @@ export function InputModal({
   conversationTitle,
   enterBehavior,
   persistKey,
+  injectedText,
+  onClearInjectedText,
 }: InputModalProps) {
   const backdropRef = useRef<HTMLDivElement>(null);
 
@@ -83,6 +87,8 @@ export function InputModal({
           mobileVisible={true}
           enterBehavior={enterBehavior}
           persistKey={persistKey}
+          injectedText={injectedText}
+          onClearInjectedText={onClearInjectedText}
         />
       </div>
     </div>
